@@ -13,7 +13,8 @@ namespace Squared.FString {
     public interface IFString {
         string Name { get; }
         void EmitValue (ref FStringBuilder output, string id);
-        void AppendTo (ref FStringBuilder output, FStringDefinition definition);
+        void AppendTo (ref FStringBuilder output, FStringTable table);
+        void AppendTo (StringBuilder output, FStringTable table);
         void AppendTo (StringBuilder output);
     }
 
@@ -185,10 +186,21 @@ namespace Squared.FString {
         public static FStringDefinition Missing (string name) {
             return new FStringDefinition(name) {
                 Opcodes = {
-                    (false, "MISSING: "),
-                    (false, name),
+                    // FIXME: This allocating each time sucks, but is necessary for GetStringLiteral
+                    (false, "MISSING: " + name)
                 },
             };
+        }
+
+        public override string ToString () {
+            return $"String '{Name}'";
+        }
+
+        public string GetStringLiteral () {
+            if ((Opcodes.Count != 1) || (Opcodes[0].emit))
+                throw new InvalidOperationException("This string is not a literal");
+            else
+                return Opcodes[0].textOrId;
         }
 
         public void AppendTo<TInstance> (ref TInstance instance, ref FStringBuilder output)
@@ -261,6 +273,11 @@ namespace Squared.FString {
 
         public void Append (StringBuilder stringBuilder) {
             stringBuilder.CopyTo(O);
+        }
+
+        public void Append (IFString fstring) {
+            // FIXME: Table selection
+            fstring.AppendTo(O);
         }
 
         public void Append (uint? value) {
@@ -358,8 +375,11 @@ namespace Squared.FString {
                     O.Append(value.ToString());
             } else if (t.IsValueType) {
                 O.Append(value.ToString());
-            } else if (value != null)
+            } else if (value is IFString ifs) {
+                Append(ifs);
+            } else if (value != null) {
                 O.Append(value.ToString());
+            }
         }
 
         public void Dispose () {
