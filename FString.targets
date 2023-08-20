@@ -1,12 +1,31 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <FStringCompilerPath>$(MSBuildThisFileDirectory)\FStringCompiler\bin\FStringCompiler.exe</FStringCompilerPath>
-    <FStringOutputPath>$(MSBuildProjectDirectory)</FStringOutputPath>
+    <FStringLibraryPath>$(MSBuildThisFileDirectory)\FString\FStrings.cs</FStringLibraryPath>
+    <FStringOutputPath>$(MSBuildProjectDirectory)\obj\FStrings</FStringOutputPath>
+    <FStringIncludeAll Condition="'$(FStringIncludeAll)' == ''">true</FStringIncludeAll>
+    <FStringDefaultCulture>eng</FStringDefaultCulture>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(FStringIncludeAll)' == 'true'">
+    <FStringTable Include="$(MSBuildProjectDirectory)\**\*.fstring" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(FStringLibraryPath)">
+      <Link>FString\FStrings.cs</Link>
+    </Compile>
+    <Compile Include="$(FStringOutputPath)\*.cs">
+    </Compile>
+    <None Include="$(FStringOutputPath)\FStringTable_*.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>        
+  </ItemGroup>
 
   <Target Name="CompileFStrings" BeforeTargets="PrepareResources">
     <Message Importance="High" Text="Compiling FStrings" />
 
-    <Exec Command='"$(FStringCompilerPath)" "$(SquaredPath)\ext\fxc" "$(ShaderDirectory)" "$(ShaderLocalBinDirectory)" "/O$(ShaderOptimizationLevel) /Zi $(ShaderCompilerDefines)" "$(ShaderCompilerExtraOptions)" "$(TestParsePath)" $(ShaderCompilerModeSwitches)' />
+    <!-- pass the paths of all the FStringTable files as a quoted list to the compiler -->
+    <Exec Command="&quot;$(FStringCompilerPath)&quot; $(FStringDefaultCulture) &quot;$(FStringOutputPath)&quot; @(FStringTable->'&quot;%(FullPath)&quot;', ' ')" />
   </Target>
 </Project>

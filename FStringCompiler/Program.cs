@@ -22,6 +22,9 @@ namespace FStringCompiler {
                 Environment.Exit(1);
             }
 
+            Directory.CreateDirectory(args[1]);
+            Console.WriteLine($"Writing output to {args[1]}");
+
             var started = DateTime.UtcNow;
             var xws = new XmlWriterSettings {
                 Indent = true,
@@ -36,6 +39,7 @@ namespace FStringCompiler {
                 xmlWriter.WriteAttributeString("GeneratedUtc", started.ToString("o"));
 
                 foreach (var inputFile in args.Skip(2)) {
+                    Console.WriteLine(inputFile);
                     xmlWriter.WriteStartElement("File");
 
                     xmlWriter.WriteAttributeString("SourcePath", inputFile);
@@ -46,7 +50,7 @@ namespace FStringCompiler {
                     var inClass = false;
                     var outPath = Path.Combine(args[1], Path.GetFileNameWithoutExtension(inputFile) + ".cs");
                     if (File.Exists(outPath) && File.GetLastWriteTimeUtc(outPath) > File.GetLastWriteTimeUtc(inputFile))
-                        Console.WriteLine($"Skipping, not modified: {inputFile} -> {outPath}");
+                        Console.WriteLine($"Skipping, output is newer: {outPath}");
 
                     StringGroup group = null;
                     using (var input = new StreamReader(inputFile))
@@ -137,7 +141,9 @@ namespace FStringCompiler {
 
                 xmlWriter.WriteEndElement();
                 xmlWriter.WriteEndDocument();
-            }            
+            }
+
+            Console.WriteLine("Done");
         }
     }
 
