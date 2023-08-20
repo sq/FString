@@ -203,6 +203,21 @@ namespace Squared.FString {
         }
     }
 
+    static class EnumNameCache<TEnum> {
+        public static readonly Dictionary<TEnum, string> Cache;
+
+        static EnumNameCache () {
+            var values = Enum.GetValues(typeof(TEnum));
+            var names = Enum.GetNames(typeof(TEnum));
+            Cache = new Dictionary<TEnum, string>(values.Length);
+            for (int i = 0; i < values.Length; i++) {
+                var value = (TEnum)values.GetValue(i);
+                var name = names[i];
+                Cache[value] = name;
+            }
+        }
+    }
+
     public struct FStringBuilder {
         private static readonly ThreadLocal<StringBuilder> ScratchBuilder = new ThreadLocal<StringBuilder>(() => new StringBuilder());
 		private static readonly char[] ms_digits = new [] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
@@ -237,6 +252,31 @@ namespace Squared.FString {
 
         public void Append (string text) {
             O.Append(text);
+        }
+
+        public void Append (uint? value) {
+            if (value.HasValue)
+                Append(value.Value);
+            else
+                Append("null");
+        }
+        public void Append (int? value) {
+            if (value.HasValue)
+                Append(value.Value);
+            else
+                Append("null");
+        }
+        public void Append (float? value) {
+            if (value.HasValue)
+                Append(value.Value);
+            else
+                Append("null");
+        }
+        public void Append (double? value) {
+            if (value.HasValue)
+                Append(value.Value);
+            else
+                Append("null");
         }
 
         public void Append (uint value) => Append((ulong)value);
@@ -304,13 +344,12 @@ namespace Squared.FString {
         public void Append<T> (T value) {
             var t = typeof(T);
             if (t.IsEnum) {
-                // FIXME
-                O.Append(value);
-            } else if (t.IsValueType) {
-                // FIXME: Numeric types
-                O.Append(value);
+                if (EnumNameCache<T>.Cache.TryGetValue(value, out var cachedName))
+                    O.Append(cachedName);
+                else
+                    O.Append(value.ToString());
             } else {
-                O.Append(value);
+                O.Append(value.ToString());
             }
         }
 
