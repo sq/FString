@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -106,6 +107,7 @@ namespace Squared.FString {
 
                         AddSegment(i);
                         i += AddEscape(GetChar(formatString, ++i), i);
+                        segmentStart = i + 1;
                         break;
 
                     case '{':
@@ -175,7 +177,6 @@ namespace Squared.FString {
                     text = string.Intern(text);
                 result.Opcodes.Add((buildingEmit, text));
                 buildingEmit = false;
-                segmentStart = end;
             }
 
             return result;
@@ -204,6 +205,7 @@ namespace Squared.FString {
 
     public struct FStringBuilder {
         private static readonly ThreadLocal<StringBuilder> ScratchBuilder = new ThreadLocal<StringBuilder>(() => new StringBuilder());
+		private static readonly char[] ms_digits = new [] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
         internal bool OwnsOutput;
         internal StringBuilder Output;
@@ -237,8 +239,66 @@ namespace Squared.FString {
             O.Append(text);
         }
 
+        public void Append (uint value) => Append((ulong)value);
+        public void Append (int value) => Append((long)value);
+        public void Append (float value) => Append((double)value);
+
+        public void Append (double value) {
+            unchecked {
+                var truncated = (long)value;
+                if (truncated == value)
+                    Append(truncated);
+                else
+                    O.Append(value);
+            }
+        }
+
+		public void Append (ulong value) {
+            // Calculate length of integer when written out
+            const uint base_val = 10;
+			ulong length = 0;
+			ulong length_calc = value;
+
+			do
+			{
+				length_calc /= base_val;
+				length++;
+			}
+			while ( length_calc > 0 );
+
+            // Pad out space for writing.
+            var string_builder = O;
+			string_builder.Append(' ', (int)length);
+
+			int strpos = string_builder.Length;
+
+			while ( length > 0 ) {
+				strpos--;
+                if ((strpos < 0) || (strpos >= string_builder.Length))
+                    throw new InvalidDataException();
+
+				string_builder[strpos] = ms_digits[value % base_val];
+
+				value /= base_val;
+				length--;
+			}
+		}
+
+		public void Append (long value) {
+            if (value < 0) {
+                O.Append('-');
+                ulong uint_val = ulong.MaxValue - ((ulong)value) + 1; //< This is to deal with Int32.MinValue
+                Append(uint_val);
+            } else
+                Append((ulong)value);
+		}
+
         public void Append (AbstractString text) {
             text.CopyTo(O);
+        }
+
+        public void Append (ImmutableAbstractString text) {
+            text.Value.CopyTo(O);
         }
 
         public void Append<T> (T value) {
