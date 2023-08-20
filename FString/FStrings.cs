@@ -21,15 +21,15 @@ namespace Squared.FString {
         public static FStringTable Default = new FStringTable("empty");
 
         public readonly string Name;
-        private readonly Dictionary<string, FStringDefinition> Entries 
+        private readonly Dictionary<string, FStringDefinition> Entries
             = new Dictionary<string, FStringDefinition>(StringComparer.OrdinalIgnoreCase);
 
         public FStringTable (string name) {
             Name = name;
         }
 
-        public FStringTable (string name, Stream input) 
-            : this (name) {
+        public FStringTable (string name, Stream input)
+            : this(name) {
             var xrs = new XmlReaderSettings {
                 CloseInput = false,
             };
@@ -80,7 +80,7 @@ namespace Squared.FString {
 
     public class FStringDefinition {
         public readonly string Name;
-        public readonly List<(bool emit, string textOrId)> Opcodes = 
+        public readonly List<(bool emit, string textOrId)> Opcodes =
             new List<(bool emit, string textOrId)>();
 
         protected FStringDefinition (string name) {
@@ -192,8 +192,7 @@ namespace Squared.FString {
         }
 
         public void AppendTo<TInstance> (ref TInstance instance, ref FStringBuilder output)
-            where TInstance : IFString 
-        {
+            where TInstance : IFString {
             foreach (var opcode in Opcodes) {
                 if (opcode.emit)
                     instance.EmitValue(ref output, opcode.textOrId);
@@ -223,7 +222,7 @@ namespace Squared.FString {
         // If they're too small, Append operations can (????) allocate new StringBuilders. I don't know why the BCL does this.
         private const int DefaultStringBuilderSize = 1024 * 8;
         private static readonly ThreadLocal<StringBuilder> ScratchBuilder = new ThreadLocal<StringBuilder>(() => new StringBuilder(DefaultStringBuilderSize));
-		private static readonly char[] ms_digits = new [] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+        private static readonly char[] ms_digits = new[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
         public IFormatProvider NumberFormatProvider;
 
@@ -294,7 +293,7 @@ namespace Squared.FString {
                 var truncated = (long)value;
                 if (truncated == value)
                     Append(truncated);
-                else 
+                else
                     // FIXME: non-integral values without allocating (the default double append allocates :()
                     // This value.ToString() is still much more efficient than O.Append(value), oddly enough.
                     // The tradeoffs may be different in .NET 7, I haven't checked
@@ -302,41 +301,41 @@ namespace Squared.FString {
             }
         }
 
-		public void Append (ulong value) {
+        public void Append (ulong value) {
             // Calculate length of integer when written out
             const uint base_val = 10;
-			ulong length = 0;
-			ulong length_calc = value;
+            ulong length = 0;
+            ulong length_calc = value;
 
-			do {
-				length_calc /= base_val;
-				length++;
-			} while ( length_calc > 0 );
+            do {
+                length_calc /= base_val;
+                length++;
+            } while (length_calc > 0);
 
             // Pad out space for writing.
             var string_builder = O.Append(' ', (int)length);
-			int strpos = string_builder.Length;
+            int strpos = string_builder.Length;
 
-			while ( length > 0 ) {
-				strpos--;
+            while (length > 0) {
+                strpos--;
                 if ((strpos < 0) || (strpos >= string_builder.Length))
                     throw new InvalidDataException();
 
-				string_builder[strpos] = ms_digits[value % base_val];
+                string_builder[strpos] = ms_digits[value % base_val];
 
-				value /= base_val;
-				length--;
-			}
-		}
+                value /= base_val;
+                length--;
+            }
+        }
 
-		public void Append (long value) {
+        public void Append (long value) {
             if (value < 0) {
                 O.Append('-');
                 ulong uint_val = ulong.MaxValue - ((ulong)value) + 1; //< This is to deal with Int32.MinValue
                 Append(uint_val);
             } else
                 Append((ulong)value);
-		}
+        }
 
         public void Append (AbstractString text) {
             text.CopyTo(O);
