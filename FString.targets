@@ -22,7 +22,7 @@
     </None>        
   </ItemGroup>
 
-  <Target Name="CompileFStrings" BeforeTargets="PrepareResources">
+  <Target Name="CompileFStrings" BeforeTargets="BeforeCompile" Inputs="@(FStringTable)" Outputs="@(FStringTable->'$(FStringOutputPath)\%(Filename).cs')">
     <Message Importance="High" Text="Compiling FStrings" />
 
     <!-- pass the paths of all the FStringTable files as a quoted list to the compiler -->
