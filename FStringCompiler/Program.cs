@@ -46,6 +46,9 @@ namespace FStringCompiler {
                     int ln = 0;
                     var inClass = false;
                     var outPath = Path.Combine(args[1], Path.GetFileNameWithoutExtension(inputFile) + ".cs");
+                    if (File.Exists(outPath) && File.GetLastWriteTimeUtc(outPath) > File.GetLastWriteTimeUtc(inputFile))
+                        Console.WriteLine($"Skipping, not modified: {inputFile} -> {outPath}");
+
                     StringGroup group = null;
                     using (var input = new StreamReader(inputFile))
                     using (var output = new StreamWriter(outPath, false, Encoding.UTF8)) {

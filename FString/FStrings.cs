@@ -219,7 +219,8 @@ namespace Squared.FString {
     }
 
     public struct FStringBuilder {
-        private static readonly ThreadLocal<StringBuilder> ScratchBuilder = new ThreadLocal<StringBuilder>(() => new StringBuilder());
+        // Ensure the scratch builders are pre-allocated
+        private static readonly ThreadLocal<StringBuilder> ScratchBuilder = new ThreadLocal<StringBuilder>(() => new StringBuilder(512));
 		private static readonly char[] ms_digits = new [] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
         internal bool OwnsOutput;
