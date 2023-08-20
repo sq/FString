@@ -17,12 +17,11 @@ namespace FStringCompiler {
             StandaloneStringRegex = new Regex("(?<name>\\w+)\\s*\\(((?<type>(\\w|\\?)+)\\s+(?<argName>\\w+)\\s*,?\\s*)*\\)\\s*=\\s*\"(?<text>(\\.|[^\"\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
 
         public static void Main (string[] args) {
-            if (args.Length != 3) {
-                Console.Error.WriteLine("Usage: fstringcompiler [input directory] [output directory] [ISO language name]");
+            if (args.Length < 3) {
+                Console.Error.WriteLine("Usage: fstringcompiler [ISO language name] [output directory] [input files...]");
                 Environment.Exit(1);
             }
 
-            var sourceDir = Path.GetFullPath(args[0]);
             var started = DateTime.UtcNow;
             var xws = new XmlWriterSettings {
                 Indent = true,
@@ -31,16 +30,15 @@ namespace FStringCompiler {
                 CloseOutput = true,
                 WriteEndDocumentOnClose = true,
             };
-            using (var xmlWriter = XmlWriter.Create(Path.Combine(args[1], $"FStringTable_{args[2]}.xml"), xws)) {
+            using (var xmlWriter = XmlWriter.Create(Path.Combine(args[1], $"FStringTable_{args[0]}.xml"), xws)) {
                 xmlWriter.WriteStartDocument();
                 xmlWriter.WriteStartElement("FStringTable");
                 xmlWriter.WriteAttributeString("GeneratedUtc", started.ToString("o"));
 
-                foreach (var inputFile in Directory.EnumerateFiles(sourceDir, "*.fstring", SearchOption.AllDirectories)) {
+                foreach (var inputFile in args.Skip(2)) {
                     xmlWriter.WriteStartElement("File");
 
-                    var shortPath = Path.GetFullPath(inputFile).Replace(sourceDir, "");
-                    xmlWriter.WriteAttributeString("SourcePath", shortPath);
+                    xmlWriter.WriteAttributeString("SourcePath", inputFile);
                     xmlWriter.WriteAttributeString("SourceCreatedUtc", File.GetCreationTimeUtc(inputFile).ToString("o"));
                     xmlWriter.WriteAttributeString("SourceModifiedUtc", File.GetLastWriteTimeUtc(inputFile).ToString("o"));
 

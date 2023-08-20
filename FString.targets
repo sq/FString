@@ -1,0 +1,12 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <FStringCompilerPath>$(MSBuildThisFileDirectory)\FStringCompiler\bin\FStringCompiler.exe</FStringCompilerPath>
+    <FStringOutputPath>$(MSBuildProjectDirectory)</FStringOutputPath>
+  </PropertyGroup>
+
+  <Target Name="CompileFStrings" BeforeTargets="PrepareResources">
+    <Message Importance="High" Text="Compiling FStrings" />
+
+    <Exec Command='"$(FStringCompilerPath)" "$(SquaredPath)\ext\fxc" "$(ShaderDirectory)" "$(ShaderLocalBinDirectory)" "/O$(ShaderOptimizationLevel) /Zi $(ShaderCompilerDefines)" "$(ShaderCompilerExtraOptions)" "$(TestParsePath)" $(ShaderCompilerModeSwitches)' />
+  </Target>
+</Project>
