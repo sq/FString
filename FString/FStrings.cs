@@ -218,9 +218,11 @@ namespace Squared.FString {
         }
     }
 
-    public struct FStringBuilder {
-        // Ensure the scratch builders are pre-allocated
-        private static readonly ThreadLocal<StringBuilder> ScratchBuilder = new ThreadLocal<StringBuilder>(() => new StringBuilder(512));
+    public struct FStringBuilder : IDisposable {
+        // Ensure the scratch builders are pre-allocated and have a good capacity.
+        // If they're too small, Append operations can (????) allocate new StringBuilders. I don't know why the BCL does this.
+        private const int DefaultStringBuilderSize = 1024 * 8;
+        private static readonly ThreadLocal<StringBuilder> ScratchBuilder = new ThreadLocal<StringBuilder>(() => new StringBuilder(DefaultStringBuilderSize));
 		private static readonly char[] ms_digits = new [] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
         public IFormatProvider NumberFormatProvider;
@@ -242,7 +244,7 @@ namespace Squared.FString {
                     throw new InvalidOperationException("String already built");
                 else if (Output == null) {
                     OwnsOutput = true;
-                    Output = ScratchBuilder.Value ?? new StringBuilder();
+                    Output = ScratchBuilder.Value ?? new StringBuilder(DefaultStringBuilderSize);
                     ScratchBuilder.Value = null;
                 }
 
@@ -306,17 +308,13 @@ namespace Squared.FString {
 			ulong length = 0;
 			ulong length_calc = value;
 
-			do
-			{
+			do {
 				length_calc /= base_val;
 				length++;
-			}
-			while ( length_calc > 0 );
+			} while ( length_calc > 0 );
 
             // Pad out space for writing.
-            var string_builder = O;
-			string_builder.Append(' ', (int)length);
-
+            var string_builder = O.Append(' ', (int)length);
 			int strpos = string_builder.Length;
 
 			while ( length > 0 ) {
@@ -361,6 +359,14 @@ namespace Squared.FString {
                 O.Append(value.ToString());
         }
 
+        public void Dispose () {
+            if (OwnsOutput && Output != null) {
+                Output.Clear();
+                ScratchBuilder.Value = Output;
+                Output = null;
+            }
+        }
+
         public override string ToString () {
             if (Result != null)
                 return Result;
@@ -368,11 +374,7 @@ namespace Squared.FString {
                 return null;
 
             Result = Output.ToString();
-            if (OwnsOutput) {
-                Output.Clear();
-                ScratchBuilder.Value = Output;
-            }
-            Output = null;
+            Dispose();
             return Result;
         }
 
