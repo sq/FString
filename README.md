@@ -49,7 +49,7 @@ If you have multiple format strings that use the same arguments, you can group t
 Basic support for switch statements is available, using syntax like the following:
 ```csharp
 (ICombatParticipant Caster, ActionDefinition Definition, bool confirmed) {
-    Action_CombatLog_Failed switch (confirmed) {
+    Action_CombatLog_Failed = switch (confirmed) {
         true = $"{Caster} failed to use {Definition.Name}: Confirmation failed";
         false = $"{Caster} failed to use {Definition.Name}: No valid targets";
     }
