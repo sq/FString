@@ -14,9 +14,7 @@
     </Compile>
     <Compile Include="$(FStringOutputPath)\*.cs">
     </Compile>
-    <None Include="$(FStringOutputPath)\FStringTable_*.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <ContentWithTargetPath Include="$(FStringOutputPath)\FStringTable_*.xml" TargetPath="%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <!-- Second copy to use for clean target below -->
     <FStringOutputs Include="$(FStringOutputPath)\*.cs">
         <Visible>false</Visible>
