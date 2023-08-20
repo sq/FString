@@ -11,10 +11,10 @@ using Squared.FString;
 
 namespace FStringCompiler {
     class Program {
-        private static readonly Regex UsingRegex = new Regex(@"using .+?;", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
-            FunctionSignatureRegex = new Regex(@"\(((?<type>(\w|\?)+)\s+(?<argName>\w+)\s*,?\s*)*\)\s*\{", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
-            StringRegex = new Regex("(?<name>\\w+)\\s*=\\s*\\$?\"(?<text>(\\.|[^\"\\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
-            StandaloneStringRegex = new Regex("(?<name>\\w+)\\s*\\(((?<type>(\\w|\\?)+)\\s+(?<argName>\\w+)\\s*,?\\s*)*\\)\\s*=\\s*\\$?\"(?<text>(\\.|[^\"\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+        private static readonly Regex UsingRegex = new Regex(@"^using .+?;", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
+            FunctionSignatureRegex = new Regex(@"^\(((?<type>(\w|\?)+)\s+(?<argName>\w+)\s*,?\s*)*\)\s*\{", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
+            StringRegex = new Regex("^(?<name>\\w+)\\s*=\\s*\\$?\"(?<text>(\\.|[^\"\\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
+            StandaloneStringRegex = new Regex("^(?<name>\\w+)\\s*\\(((?<type>(\\w|\\?)+)\\s+(?<argName>\\w+)\\s*,?\\s*)*\\)\\s*=\\s*\\$?\"(?<text>(\\.|[^\"\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
 
         public static void Main (string[] args) {
             if (args.Length < 3) {
@@ -38,7 +38,7 @@ namespace FStringCompiler {
                 xmlWriter.WriteStartElement("FStringTable");
                 xmlWriter.WriteAttributeString("GeneratedUtc", started.ToString("o"));
 
-                foreach (var inputFile in args.Skip(2)) {
+                foreach (var inputFile in args.Skip(2).Distinct().OrderBy(s => s)) {
                     Console.WriteLine(inputFile);
                     xmlWriter.WriteStartElement("File");
 

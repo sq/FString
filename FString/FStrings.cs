@@ -22,7 +22,7 @@ namespace Squared.FString {
 
         public readonly string Name;
         private readonly Dictionary<string, FStringDefinition> Entries
-            = new Dictionary<string, FStringDefinition>(StringComparer.OrdinalIgnoreCase);
+            = new Dictionary<string, FStringDefinition>(StringComparer.Ordinal);
 
         public FStringTable (string name) {
             Name = name;
