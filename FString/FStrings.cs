@@ -223,11 +223,14 @@ namespace Squared.FString {
         private static readonly ThreadLocal<StringBuilder> ScratchBuilder = new ThreadLocal<StringBuilder>(() => new StringBuilder(512));
 		private static readonly char[] ms_digits = new [] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
+        public IFormatProvider NumberFormatProvider;
+
         internal bool OwnsOutput;
         internal StringBuilder Output;
         internal string Result;
 
         public FStringBuilder (StringBuilder output) {
+            NumberFormatProvider = System.Globalization.NumberFormatInfo.CurrentInfo;
             OwnsOutput = false;
             Output = output;
             Result = null;
@@ -289,8 +292,11 @@ namespace Squared.FString {
                 var truncated = (long)value;
                 if (truncated == value)
                     Append(truncated);
-                else
-                    O.Append(value);
+                else 
+                    // FIXME: non-integral values without allocating (the default double append allocates :()
+                    // This value.ToString() is still much more efficient than O.Append(value), oddly enough.
+                    // The tradeoffs may be different in .NET 7, I haven't checked
+                    O.Append(value.ToString(NumberFormatProvider));
             }
         }
 
@@ -349,9 +355,10 @@ namespace Squared.FString {
                     O.Append(cachedName);
                 else
                     O.Append(value.ToString());
-            } else {
+            } else if (t.IsValueType) {
                 O.Append(value.ToString());
-            }
+            } else if (value != null)
+                O.Append(value.ToString());
         }
 
         public override string ToString () {
