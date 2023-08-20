@@ -56,3 +56,14 @@ And then add an ItemGroup pointing to your `.fstring` file(s):
     <FStringTable Include="FStrings\*.fstring" />
   </ItemGroup>
 ```
+
+At startup, you'll want to load an appropriate string table for the current culture, like so:
+
+```csharp
+        public static void LoadDefaultStringTable () {
+            var culture = CultureInfo.CurrentCulture.ThreeLetterISOLanguageName;
+            var path = Path.Combine(ApplicationDirectory, "FStrings", $"FStringTable_{culture}.xml");
+            using (var stream = File.OpenRead(path))
+                Squared.FString.FStringTable.Default = new Squared.FString.FStringTable(culture, stream);
+        }
+```
