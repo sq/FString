@@ -229,6 +229,8 @@ namespace FStringCompiler {
             StringTableKey = (swtch != null) ? $"{swtch.Name}_{HashUtil.GetShortHash(Name)}" : Name;
             FormatString = m.Groups["text"].Value;
             Definition = FStringDefinition.Parse(Name, FormatString);
+            if (Definition.Opcodes.Any(o => o.emit && o.textOrId == "this"))
+                throw new Exception("{this} is invalid in FStrings");
         }
 
         public void Write (StreamWriter output, XmlWriter xmlWriter) {
