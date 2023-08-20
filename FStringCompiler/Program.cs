@@ -175,38 +175,43 @@ namespace FStringCompiler {
         }
 
         public void Write (StreamWriter output) {
-            output.WriteLine($"\tpublic struct {Name} : IFString {{");
-            output.WriteLine($"\t\tpublic string Name => \"{Name}\";");
-            foreach (var arg in Group.Arguments)
-                output.WriteLine($"\t\tpublic {arg.Type} {arg.Name};");
-            output.WriteLine();
+            if (Group.Arguments.Count == 0) {
+                output.WriteLine($"\tpublic static string {Name} () => FStringTable.Default.Get(\"{Name}\").ToString();");
+                output.WriteLine($"\tpublic static string {Name} (FStringTable table) => table.Get(\"{Name}\").ToString();");
+            } else {
+                output.WriteLine($"\tpublic struct {Name} : IFString {{");
+                output.WriteLine($"\t\tpublic string Name => \"{Name}\";");
+                foreach (var arg in Group.Arguments)
+                    output.WriteLine($"\t\tpublic {arg.Type} {arg.Name};");
+                output.WriteLine();
 
-            output.WriteLine("\t\tpublic void EmitValue (ref FStringBuilder output, string id) {");
-            output.WriteLine("\t\t\tswitch(id) {");
-            var keys = Definition.Opcodes.Where(o => o.emit).Select(o => o.textOrId).Distinct();
-            foreach (var key in keys) {
-                output.WriteLine($"\t\t\t\tcase \"{key}\":");
-                output.WriteLine($"\t\t\t\t\toutput.Append({key});");
-                output.WriteLine($"\t\t\t\t\treturn;");
+                output.WriteLine("\t\tpublic void EmitValue (ref FStringBuilder output, string id) {");
+                output.WriteLine("\t\t\tswitch(id) {");
+                var keys = Definition.Opcodes.Where(o => o.emit).Select(o => o.textOrId).Distinct();
+                foreach (var key in keys) {
+                    output.WriteLine($"\t\t\t\tcase \"{key}\":");
+                    output.WriteLine($"\t\t\t\t\toutput.Append({key});");
+                    output.WriteLine($"\t\t\t\t\treturn;");
+                }
+                output.WriteLine("\t\t\t\tdefault:");
+                output.WriteLine("\t\t\t\t\tthrow new ArgumentOutOfRangeException(nameof(id));");
+                output.WriteLine("\t\t\t}");
+                output.WriteLine("\t\t}");
+
+                output.WriteLine("\t\tpublic void AppendTo (ref FStringBuilder output, FStringDefinition definition) => definition.AppendTo(ref this, ref output);");
+                output.WriteLine("\t\tpublic void AppendTo (StringBuilder output) {");
+                output.WriteLine("\t\t\tvar fsb = new FStringBuilder(output);");
+                output.WriteLine("\t\t\tFStringTable.Default.Get(Name).AppendTo(ref this, ref fsb);");
+                output.WriteLine("\t\t}");
+
+                output.WriteLine("\t\tpublic override string ToString () {");
+                output.WriteLine("\t\t\tvar output = new FStringBuilder();");
+                output.WriteLine("\t\t\tAppendTo(ref output, FStringTable.Default.Get(Name));");
+                output.WriteLine("\t\t\treturn output.ToString();");
+                output.WriteLine("\t\t}");
+
+                output.WriteLine("\t}");
             }
-            output.WriteLine("\t\t\t\tdefault:");
-            output.WriteLine("\t\t\t\t\tthrow new ArgumentOutOfRangeException(nameof(id));");
-            output.WriteLine("\t\t\t}");
-            output.WriteLine("\t\t}");
-
-            output.WriteLine("\t\tpublic void AppendTo (ref FStringBuilder output, FStringDefinition definition) => definition.AppendTo(ref this, ref output);");
-            output.WriteLine("\t\tpublic void AppendTo (StringBuilder output) {");
-            output.WriteLine("\t\t\tvar fsb = new FStringBuilder(output);");
-            output.WriteLine("\t\t\tFStringTable.Default.Get(Name).AppendTo(ref this, ref fsb);");
-            output.WriteLine("\t\t}");
-
-            output.WriteLine("\t\tpublic override string ToString () {");
-            output.WriteLine("\t\t\tvar output = new FStringBuilder();");
-            output.WriteLine("\t\t\tAppendTo(ref output, FStringTable.Default.Get(Name));");
-            output.WriteLine("\t\t\treturn output.ToString();");
-            output.WriteLine("\t\t}");
-
-            output.WriteLine("\t}");
             output.WriteLine();
         }
     }

@@ -259,6 +259,10 @@ namespace Squared.FString {
             O.Append(text);
         }
 
+        public void Append (StringBuilder stringBuilder) {
+            stringBuilder.CopyTo(O);
+        }
+
         public void Append (uint? value) {
             if (value.HasValue)
                 Append(value.Value);
