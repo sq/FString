@@ -199,7 +199,7 @@ namespace FStringCompiler {
         }
 
         internal void WriteNameSelector (StreamWriter output) {
-            output.WriteLine("\t\tpublic string Name { get {");
+            output.WriteLine("\t\tpublic string StringTableKey { get {");
             output.WriteLine($"\t\t\tswitch ({Selector}) {{");
             foreach (var kvp in Cases) {
                 if (kvp.Key == "default")
@@ -207,8 +207,10 @@ namespace FStringCompiler {
                 else
                     output.WriteLine($"\t\t\t\tcase {kvp.Key}: return \"{kvp.Value.StringTableKey}\";");
             }
-            if (!Cases.ContainsKey("default"))
-                output.WriteLine($"\t\t\t\tdefault: throw new ArgumentOutOfRangeException(nameof({Selector}));");
+            if (!Cases.ContainsKey("default")) {
+                var printableSelector = Selector.Replace("\"", "\\\")}");
+                output.WriteLine($"\t\t\t\tdefault: throw new ArgumentOutOfRangeException(\"{printableSelector}\");");
+            }
             output.WriteLine("\t\t\t}");
             output.WriteLine("\t\t} }");
         }
@@ -247,7 +249,7 @@ namespace FStringCompiler {
 
             if (Group.Arguments.Count == 0) {
                 output.WriteLine($"\tpublic static string {Name} () => {Name}(FStringTable.Default);");
-                output.WriteLine($"\tpublic static string {Name} (FStringTable table) => table.Get(\"{Name}\").GetStringLiteral();");
+                output.WriteLine($"\tpublic static string {Name} (FStringTable table) => table.Get(\"{StringTableKey}\").GetStringLiteral();");
             } else {
                 output.WriteLine($"\tpublic struct {structName} : IFString {{");
 
@@ -255,7 +257,7 @@ namespace FStringCompiler {
                 if (Switch != null)
                     Switch.WriteNameSelector(output);
                 else
-                    output.WriteLine($"\t\tpublic string Name => \"{StringTableKey}\";");
+                    output.WriteLine($"\t\tpublic string StringTableKey => \"{StringTableKey}\";");
 
                 // Generate the fields
                 foreach (var arg in Group.Arguments)
@@ -295,11 +297,11 @@ namespace FStringCompiler {
                 output.WriteLine("\t\t}");
 
                 // Generate the append overloads that make things usable dynamically
-                output.WriteLine("\t\tpublic void AppendTo (ref FStringBuilder output, FStringTable table) => table.Get(Name).AppendTo(ref this, ref output);");
+                output.WriteLine("\t\tpublic void AppendTo (ref FStringBuilder output, FStringTable table) => table.Get(StringTableKey).AppendTo(ref this, ref output);");
                 output.WriteLine("\t\tpublic void AppendTo (StringBuilder output) => AppendTo(output, FStringTable.Default);");
                 output.WriteLine("\t\tpublic void AppendTo (StringBuilder output, FStringTable table) {");
                 output.WriteLine("\t\t\tvar fsb = new FStringBuilder(output);");
-                output.WriteLine("\t\t\ttable.Get(Name).AppendTo(ref this, ref fsb);");
+                output.WriteLine("\t\t\ttable.Get(StringTableKey).AppendTo(ref this, ref fsb);");
                 output.WriteLine("\t\t}");
 
                 // Generate ToString for simple uses

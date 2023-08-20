@@ -60,10 +60,12 @@ For simple automatic integration, use the `.targets` file by adding an import li
 ```xml
   <Import Project="..\..\FString\FString.targets" />
 ```
-And then add an ItemGroup pointing to your `.fstring` file(s):
+And then add an ItemGroup pointing to your `.fstring` file(s) along with the output of the compiler:
 ```xml
   <ItemGroup>
     <FStringTable Include="FStrings\*.fstring" />
+    <!-- visual studio is bad software so we can't do this automatically for you -->
+    <Compile Include="$(FStringOutputPath)\*.cs" />
   </ItemGroup>
 ```
 

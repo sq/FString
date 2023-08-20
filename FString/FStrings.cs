@@ -11,7 +11,7 @@ using Squared.Util.Text;
 
 namespace Squared.FString {
     public interface IFString {
-        string Name { get; }
+        string StringTableKey { get; }
         void EmitValue (ref FStringBuilder output, string id);
         void AppendTo (ref FStringBuilder output, FStringTable table);
         void AppendTo (StringBuilder output, FStringTable table);
