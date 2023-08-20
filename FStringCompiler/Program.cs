@@ -282,8 +282,15 @@ namespace FStringCompiler {
                 // Generate the emitter that looks up a value by string key. This makes everything work
                 output.WriteLine("\t\tpublic void EmitValue (ref FStringBuilder output, string id) {");
                 output.WriteLine("\t\t\tswitch(id) {");
-                var keys = Definition.Opcodes.Where(o => o.emit).Select(o => o.textOrId).Distinct();
-                foreach (var key in keys) {
+                IEnumerable<string> keys;
+                if (Switch != null) {
+                    keys = new string[0];
+                    foreach (var value in Switch.Cases.Values)
+                        keys = keys.Concat(GetIds(value.Definition));
+                } else {
+                    keys = GetIds(Definition);
+                }
+                foreach (var key in keys.Distinct()) {
                     output.WriteLine($"\t\t\t\tcase \"{key.Replace("\"", "\\\"")}\":");
                     // TODO: Detect fstrings and try to do a fast-path, no-allocation append
                     // We need a way to store the fstring without boxing first though...
@@ -315,6 +322,9 @@ namespace FStringCompiler {
             }
             output.WriteLine();
         }
+
+        private static IEnumerable<string> GetIds (FStringDefinition definition) =>
+            definition.Opcodes.Where(o => o.emit).Select(o => o.textOrId);
     }
 
     public static class HashUtil {
