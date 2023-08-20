@@ -3,7 +3,9 @@
     <FStringCompilerPath>$(MSBuildThisFileDirectory)\FStringCompiler\bin\FStringCompiler.exe</FStringCompilerPath>
     <FStringLibraryPath>$(MSBuildThisFileDirectory)\FString\FStrings.cs</FStringLibraryPath>
     <FStringOutputPath>$(MSBuildProjectDirectory)\obj\FStrings</FStringOutputPath>
+    <FStringSentinelPath>$(FStringOutputPath)\.sentinel</FStringSentinelPath>
     <FStringDefaultCulture>eng</FStringDefaultCulture>
+    <FStringMainXmlPath>$(FStringOutputPath)\FStringTable_$(FStringDefaultCulture).xml</FStringMainXmlPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,10 +16,19 @@
     </Compile>
     <None Include="$(FStringOutputPath)\FStringTable_*.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>        
+    </None>
+    <!-- Second copy to use for clean target below -->
+    <FStringOutputs Include="$(FStringOutputPath)\*.cs">
+        <Visible>false</Visible>
+    </FStringOutputs>
   </ItemGroup>
 
-  <Target Name="CompileFStrings" BeforeTargets="BeforeCompile" Inputs="@(FStringTable)" Outputs="@(FStringTable->'$(FStringOutputPath)\%(Filename).cs')">
+  <Target Name="CleanFStrings" BeforeTargets="BeforeBuildDependsOn;CompileFStrings" Inputs="@(FStringTable)" Outputs="$(FStringSentinelPath)">
+    <!-- HACK: If we need to rebuild anything, we need to delete all the outputs to ensure a full rebuild. -->
+    <Delete Files="@(FStringOutputs)" />
+  </Target>
+
+  <Target Name="CompileFStrings" BeforeTargets="BeforeCompile" Inputs="@(FStringTable)" Outputs="@(FStringMainXmlPath);@(FStringTable->'$(FStringOutputPath)\%(Filename).cs')">
     <Message Importance="High" Text="Compiling FStrings" />
 
     <!-- pass the paths of all the FStringTable files as a quoted list to the compiler -->
