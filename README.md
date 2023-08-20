@@ -1,7 +1,7 @@
 FString is an extremely rough implementation of a compile-time generator for zero-allocation format strings with localization support. You can take a `$"..."` format string from your C#, copy-paste it into an .fstring file, and run the generator to produce a .cs file you can include into your application, like this:
 
 ```csharp
-Tooltip_CanUseInTurns (int cooldownTurnsLeft) = "  $[color:#FF0000]In $[.medium]{cooldownTurnsLeft} turn(s)$[.regular]$[]";
+Tooltip_CanUseInTurns (int cooldownTurnsLeft) = $"  $[color:#FF0000]In $[.medium]{cooldownTurnsLeft} turn(s)$[.regular]$[]";
 ```
 
 produces
@@ -39,10 +39,10 @@ If you have multiple format strings that use the same arguments, you can group t
 
 ```csharp
 (CombatStat stat, float amount, string resetStyle) {
-    FormatStat_Health = "$[.medium]$[color:red] {amount}%{resetStyle}";
-    FormatStat_Stamina = "$[.medium]$(combat:Stamina|\uF800 {amount}){resetStyle}";
-    FormatStat_Initiative = "$[.medium]$(combat:Initiative|\uF801 {amount}){resetStyle}";
-    FormatStat_Default = "$[.medium]{amount}$[.regular] {stat}{resetStyle}";
+    FormatStat_Health = $"$[.medium]$[color:red] {amount}%{resetStyle}";
+    FormatStat_Stamina = $"$[.medium]$(combat:Stamina|\uF800 {amount}){resetStyle}";
+    FormatStat_Initiative = $"$[.medium]$(combat:Initiative|\uF801 {amount}){resetStyle}";
+    FormatStat_Default = $"$[.medium]{amount}$[.regular] {stat}{resetStyle}";
 }
 ```
 

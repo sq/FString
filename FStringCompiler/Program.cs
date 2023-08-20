@@ -13,8 +13,8 @@ namespace FStringCompiler {
     class Program {
         private static readonly Regex UsingRegex = new Regex(@"using .+?;", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
             FunctionSignatureRegex = new Regex(@"\(((?<type>(\w|\?)+)\s+(?<argName>\w+)\s*,?\s*)*\)\s*\{", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
-            StringRegex = new Regex("(?<name>\\w+)\\s*=\\s*\"(?<text>(\\.|[^\"\\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
-            StandaloneStringRegex = new Regex("(?<name>\\w+)\\s*\\(((?<type>(\\w|\\?)+)\\s+(?<argName>\\w+)\\s*,?\\s*)*\\)\\s*=\\s*\"(?<text>(\\.|[^\"\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+            StringRegex = new Regex("(?<name>\\w+)\\s*=\\s*\\$?\"(?<text>(\\.|[^\"\\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
+            StandaloneStringRegex = new Regex("(?<name>\\w+)\\s*\\(((?<type>(\\w|\\?)+)\\s+(?<argName>\\w+)\\s*,?\\s*)*\\)\\s*=\\s*\\$?\"(?<text>(\\.|[^\"\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
 
         public static void Main (string[] args) {
             if (args.Length < 3) {
@@ -78,7 +78,7 @@ namespace FStringCompiler {
                                 if (group == null) {
                                     if (UsingRegex.IsMatch(line)) {
                                         if (inClass) {
-                                            Console.Error.WriteLine($"{args[0]}({ln}): Cannot add new using statements after defining a string");
+                                            Console.Error.WriteLine($"error: {inputFile}({ln}): Cannot add new using statements after defining a string");
                                             Environment.Exit(5);
                                         } else {
                                             output.WriteLine(line);
@@ -101,7 +101,7 @@ namespace FStringCompiler {
                                             xmlWriter.WriteString(fs.FormatString);
                                             xmlWriter.WriteEndElement();
                                         } else {
-                                            Console.Error.WriteLine($"{args[0]}({ln}): Unrecognized line: {line}");
+                                            Console.Error.WriteLine($"error: {inputFile}({ln}): Unrecognized line: {line}");
                                             Environment.Exit(2);
                                         }
                                     }
@@ -122,12 +122,12 @@ namespace FStringCompiler {
                                         group = null;
                                         // End of group
                                     } else {
-                                        Console.Error.WriteLine($"{args[0]}({ln}): Unrecognized line: {line}");
+                                        Console.Error.WriteLine($"error: {inputFile}({ln}): Unrecognized line: {line}");
                                         Environment.Exit(3);
                                     }
                                 }
                             } catch (Exception exc) {
-                                Console.Error.WriteLine($"{args[0]}({ln}): {exc}");
+                                Console.Error.WriteLine($"error: {inputFile}({ln}): {exc}");
                                 Environment.Exit(4);
                             }
                         }
