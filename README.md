@@ -46,6 +46,16 @@ If you have multiple format strings that use the same arguments, you can group t
 }
 ```
 
+Basic support for switch statements is available, using syntax like the following:
+```csharp
+(ICombatParticipant Caster, ActionDefinition Definition, bool confirmed) {
+    Action_CombatLog_Failed switch (confirmed) {
+        true = $"{Caster} failed to use {Definition.Name}: Confirmation failed";
+        false = $"{Caster} failed to use {Definition.Name}: No valid targets";
+    }
+}
+```
+
 For simple automatic integration, use the `.targets` file by adding an import like this to your `.csproj`:
 ```xml
   <Import Project="..\..\FString\FString.targets" />
@@ -56,6 +66,8 @@ And then add an ItemGroup pointing to your `.fstring` file(s):
     <FStringTable Include="FStrings\*.fstring" />
   </ItemGroup>
 ```
+
+The compiler produces a static class named `FStrings` containing a static method or struct for each of your strings.
 
 At startup, you'll want to load an appropriate string table for the current culture, like so:
 
