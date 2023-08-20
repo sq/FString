@@ -12,8 +12,9 @@ using Squared.FString;
 namespace FStringCompiler {
     class Program {
         private static readonly Regex UsingRegex = new Regex(@"using .+?;", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
-            FunctionSignatureRegex = new Regex(@"\(((?<type>(\w|\?)+)\s+(?<name>\w+)\s*,?\s*)*\)\s*=>\s*\{", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
-            StringRegex = new Regex("(?<name>\\w+)\\s*=\\s*\"(?<text>(\\.|[^\"\\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+            FunctionSignatureRegex = new Regex(@"\(((?<type>(\w|\?)+)\s+(?<argName>\w+)\s*,?\s*)*\)\s*\{", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
+            StringRegex = new Regex("(?<name>\\w+)\\s*=\\s*\"(?<text>(\\.|[^\"\\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
+            StandaloneStringRegex = new Regex("(?<name>\\w+)\\s*\\(((?<type>(\\w|\\?)+)\\s+(?<argName>\\w+)\\s*,?\\s*)*\\)\\s*=\\s*\"(?<text>(\\.|[^\"\n])*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
 
         public static void Main (string[] args) {
             if (args.Length != 3) {
@@ -52,6 +53,11 @@ namespace FStringCompiler {
                     StringGroup group = null;
                     using (var input = new StreamReader(inputFile))
                     using (var output = new StreamWriter(outPath, false, Encoding.UTF8)) {
+                        output.WriteLine("using System;");
+                        output.WriteLine("using System.Text;");
+                        output.WriteLine("using Squared.FString;");
+                        output.WriteLine();
+
                         while (!input.EndOfStream) {
                             var line = input.ReadLine();
                             ln++;
@@ -77,8 +83,21 @@ namespace FStringCompiler {
                                         }
                                     } else {
                                         var fsm = FunctionSignatureRegex.Match(line);
+                                        var ssm = StandaloneStringRegex.Match(line);
                                         if (fsm.Success) {
                                             group = new StringGroup(fsm);
+                                        } else if (ssm.Success) {
+                                            if (!inClass) {
+                                                output.WriteLine("public static partial class FStrings {");
+                                                inClass = true;
+                                            }
+
+                                            var tempGroup = new StringGroup(ssm);
+                                            var fs = new FString(tempGroup, ssm);
+                                            fs.Write(output);
+                                            xmlWriter.WriteStartElement(fs.Name);
+                                            xmlWriter.WriteString(fs.FormatString);
+                                            xmlWriter.WriteEndElement();
                                         } else {
                                             Console.Error.WriteLine($"{args[0]}({ln}): Unrecognized line: {line}");
                                             Environment.Exit(2);
@@ -88,17 +107,13 @@ namespace FStringCompiler {
                                     var sm = StringRegex.Match(line);
                                     if (sm.Success) {
                                         if (!inClass) {
-                                            output.WriteLine("using System;");
-                                            output.WriteLine("using System.Text;");
-                                            output.WriteLine("using Squared.FString;");
-                                            output.WriteLine();
                                             output.WriteLine("public static partial class FStrings {");
                                             inClass = true;
                                         }
 
                                         var fs = new FString(group, sm);
-                                        xmlWriter.WriteStartElement(fs.Name);
                                         fs.Write(output);
+                                        xmlWriter.WriteStartElement(fs.Name);
                                         xmlWriter.WriteString(fs.FormatString);
                                         xmlWriter.WriteEndElement();
                                     } else if (line == "}") {
@@ -137,7 +152,7 @@ namespace FStringCompiler {
 
         public StringGroup (Match m) {
             var types = m.Groups["type"].Captures.Cast<Capture>().Select(c => c.Value).ToArray();
-            var names = m.Groups["name"].Captures.Cast<Capture>().Select(c => c.Value).ToArray();
+            var names = m.Groups["argName"].Captures.Cast<Capture>().Select(c => c.Value).ToArray();
             for (int i = 0; i < types.Length; i++)
                 Arguments.Add(new Argument { Type = types[i], Name = names[i] });
         }
