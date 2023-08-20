@@ -46,3 +46,7 @@ If you have multiple format strings that use the same arguments, you can group t
 }
 ```
 
+For simple automatic integration, use the `.targets` file by adding an import like this to your `.csproj`:
+```xml
+  <Import Project="..\..\FString\FString.targets" />
+```
