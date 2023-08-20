@@ -237,7 +237,7 @@ namespace FStringCompiler {
 
         public void Write (StreamWriter output, XmlWriter xmlWriter) {
             if (Switch != null)
-                xmlWriter.WriteComment(Name);
+                xmlWriter.WriteComment($" {Switch.Selector} = {Name} ");
             xmlWriter.WriteStartElement(StringTableKey);
             xmlWriter.WriteString(FormatString);
             xmlWriter.WriteEndElement();
