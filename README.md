@@ -50,3 +50,9 @@ For simple automatic integration, use the `.targets` file by adding an import li
 ```xml
   <Import Project="..\..\FString\FString.targets" />
 ```
+And then add an ItemGroup pointing to your `.fstring` file(s):
+```xml
+  <ItemGroup>
+    <FStringTable Include="FStrings\*.fstring" />
+  </ItemGroup>
+```
