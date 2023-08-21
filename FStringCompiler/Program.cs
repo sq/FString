@@ -15,7 +15,8 @@ namespace FStringCompiler {
     class Program {
         private static readonly Regex UsingRegex = new Regex(@"^using .+?;", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
             FunctionSignatureRegex = new Regex(@"^\(((?<type>(\w|\?)+)\s+(?<argName>\w+)\s*,?\s*)*\)\s*\{", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
-            StringRegex = new Regex("^(?<name>(\\w|\\.)+)\\s*=\\s*\\$?\"(?<text>.*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
+            // HACK: Including " in the name regex for switch cases
+            StringRegex = new Regex("^(?<name>(\\w|[\"\\.\\-])+)\\s*=\\s*\\$?\"(?<text>.*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
             CasesRegex = new Regex(@"^\s*(?<name>\w+)\s*=\s*switch\s*\((?<selector>.*)\)\s*{", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
             StandaloneStringRegex = new Regex("^(?<name>\\w+)\\s*\\(((?<type>(\\w|\\?)+)\\s+(?<argName>\\w+)\\s*,?\\s*)*\\)\\s*=\\s*\\$?\"(?<text>.*)\";", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
 

@@ -9,6 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectCapability Include="DynamicDependentFile" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)ProjectItemsSchema.xaml" />
+
     <!-- Reference the library -->
     <ProjectReference Include="$(FStringLibraryPath)\LibFString.csproj">
       <Project>{91D1707E-393D-4A80-9C9C-AF33C707B76F}</Project>

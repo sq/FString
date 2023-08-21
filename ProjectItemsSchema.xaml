@@ -1,0 +1,14 @@
+<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
+    <ContentType
+        Name="FStringSourceFile" 
+        DisplayName="FString source file" 
+        ItemType="FStringTable">
+        <NameValuePair Name="DependentExtensions" Value=".cs" />
+    </ContentType>
+    <ItemType 
+        Name="FStringTable" 
+        DisplayName="FString source file"/>
+    <FileExtension 
+        Name=".fstring" 
+        ContentType="FStringSourceFile" />
+</ProjectSchemaDefinitions>

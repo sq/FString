@@ -31,6 +31,10 @@ namespace Squared.FString {
 
         public FStringTable (string name, Stream input)
             : this(name) {
+            PopulateFromXmlStream(input);
+        }
+
+        public void PopulateFromXmlStream (Stream input) {
             var xrs = new XmlReaderSettings {
                 CloseInput = false,
             };
