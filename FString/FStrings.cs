@@ -14,6 +14,7 @@ namespace Squared.FString {
         string StringTableKey { get; }
         void EmitValue (ref FStringBuilder output, string id);
         void AppendTo (ref FStringBuilder output, FStringTable table);
+        void AppendTo (ref FStringBuilder output);
         void AppendTo (StringBuilder output, FStringTable table);
         void AppendTo (StringBuilder output);
     }
@@ -246,6 +247,8 @@ namespace Squared.FString {
 
         internal bool OwnsOutput;
         internal StringBuilder Output;
+        // HACK: Optimization for cases where all that happens is a single string gets appended to the builder
+        internal string Prefix;
         internal string Result;
 
         internal string DebuggerDisplayText => $"FStringBuilder(OwnsOutput = {OwnsOutput}, Output.Length={Output?.Length}, Result='{Result}')";
@@ -255,6 +258,7 @@ namespace Squared.FString {
             OwnsOutput = false;
             Output = output;
             Result = null;
+            Prefix = null;
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -266,6 +270,9 @@ namespace Squared.FString {
                     OwnsOutput = true;
                     Output = ScratchBuilder.Value ?? new StringBuilder(DefaultStringBuilderSize);
                     ScratchBuilder.Value = null;
+                    if (Prefix != null)
+                        Output.Append(Prefix);
+                    Prefix = null;
                 }
 
                 return Output;
@@ -273,11 +280,14 @@ namespace Squared.FString {
         }
 
         public void Append (char ch) {
-            Output = O.Append(ch);
+            O.Append(ch);
         }
 
         public void Append (string text) {
-            Output = O.Append(text);
+            if ((Output == null) && (Prefix == null) && (Result == null))
+                Prefix = text;
+            else
+                O.Append(text);
         }
 
         public void Append (StringBuilder stringBuilder) {
@@ -330,7 +340,7 @@ namespace Squared.FString {
                     // FIXME: non-integral values without allocating (the default double append allocates :()
                     // This value.ToString() is still much more efficient than O.Append(value), oddly enough.
                     // The tradeoffs may be different in .NET 7, I haven't checked
-                    Output = O.Append(value.ToString(NumberFormatProvider));
+                    Append(value.ToString(NumberFormatProvider));
             }
         }
 
@@ -346,7 +356,7 @@ namespace Squared.FString {
             } while (length_calc > 0);
 
             // Pad out space for writing.
-            var string_builder = Output = O.Append(' ', (int)length);
+            var string_builder = O.Append(' ', (int)length);
             int strpos = string_builder.Length;
 
             while (length > 0) {
@@ -363,7 +373,7 @@ namespace Squared.FString {
 
         public void Append (long value) {
             if (value < 0) {
-                Output = O.Append('-');
+                O.Append('-');
                 ulong uint_val = ulong.MaxValue - ((ulong)value) + 1; //< This is to deal with Int32.MinValue
                 Append(uint_val);
             } else
@@ -382,15 +392,15 @@ namespace Squared.FString {
             var t = typeof(T);
             if (t.IsEnum) {
                 if (EnumNameCache<T>.Cache.TryGetValue(value, out var cachedName))
-                    Output = O.Append(cachedName);
+                    Append(cachedName);
                 else
-                    Output = O.Append(value.ToString());
+                    Append(value.ToString());
             } else if (t.IsValueType) {
-                Output = O.Append(value.ToString());
+                Append(value.ToString());
             } else if (value is IFString ifs) {
                 Append(ifs);
             } else if (value != null) {
-                Output = O.Append(value.ToString());
+                Append(value.ToString());
             }
         }
 
@@ -398,17 +408,22 @@ namespace Squared.FString {
             if (OwnsOutput && Output != null) {
                 Output.Clear();
                 ScratchBuilder.Value = Output;
-                Output = null;
             }
+            Prefix = null;
+            Output = null;
         }
 
         public override string ToString () {
             if (Result != null)
                 return Result;
-            else if (Output == null)
+            else if (Prefix != null) {
+                Result = Prefix;
+                Prefix = null;
+            } else if (Output == null)
                 return null;
+            else
+                Result = Output.ToString();
 
-            Result = Output.ToString();
             Dispose();
             return Result;
         }
