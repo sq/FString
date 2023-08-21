@@ -37,6 +37,7 @@ namespace FStringCompiler {
                 CloseOutput = true,
                 WriteEndDocumentOnClose = true,
             };
+            var commentBuffer = new StringBuilder();
             using (var xmlWriter = XmlWriter.Create(Path.Combine(args[1], $"FStringTable_{args[0]}.xml"), xws)) {
                 xmlWriter.WriteStartDocument();
                 xmlWriter.WriteStartElement("FStringTable");
@@ -61,6 +62,8 @@ namespace FStringCompiler {
 
                     using (var input = new StreamReader(inputFile))
                     using (var output = new StreamWriter(outPath, false, Encoding.UTF8)) {
+                        commentBuffer.Clear();
+
                         output.WriteLine("using System;");
                         output.WriteLine("using System.Text;");
                         output.WriteLine("using Squared.FString;");
@@ -76,6 +79,7 @@ namespace FStringCompiler {
 
                             line = line.Trim();
                             if (line.StartsWith("//")) {
+                                commentBuffer.AppendLine(line);
                                 output.WriteLine(line);
                                 continue;
                             } else if (line.EndsWith("=")) {
@@ -114,6 +118,7 @@ namespace FStringCompiler {
                                                 inClass = true;
                                             }
 
+                                            AutoWriteComments();
                                             var tempGroup = new StringGroup(ssm);
                                             var fs = new FString(tempGroup, ssm, swtch);
                                             fs.Write(output, xmlWriter);
@@ -132,8 +137,10 @@ namespace FStringCompiler {
                                         }
 
                                         var fs = new FString(group, sm, swtch);
-                                        if (swtch == null)
+                                        if (swtch == null) {
+                                            AutoWriteComments();
                                             fs.Write(output, xmlWriter);
+                                        }
                                     } else if (cm.Success) {
                                         if (swtch != null){
                                             Console.Error.WriteLine($"error: {inputFile}({ln}): Nesting switches is disallowed");
@@ -173,6 +180,14 @@ namespace FStringCompiler {
 
                 xmlWriter.WriteEndElement();
                 xmlWriter.WriteEndDocument();
+
+                void AutoWriteComments () {
+                    if (commentBuffer.Length <= 0)
+                        return;
+
+                    xmlWriter.WriteComment(" " + commentBuffer.ToString().Replace("//", "").Trim() + " ");
+                    commentBuffer.Clear();
+                }
             }
 
             Console.WriteLine("Done");
@@ -252,7 +267,7 @@ namespace FStringCompiler {
 
         public void Write (StreamWriter output, XmlWriter xmlWriter) {
             if (Switch != null)
-                xmlWriter.WriteComment($" {Switch.Selector} = {Name} ");
+                xmlWriter.WriteComment($" ({Switch.Selector}) = {Name} ");
             xmlWriter.WriteStartElement(StringTableKey);
             xmlWriter.WriteString(FormatString);
             xmlWriter.WriteEndElement();

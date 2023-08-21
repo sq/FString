@@ -21,6 +21,13 @@ namespace Squared.FString {
     public class FStringTable {
         public static FStringTable Default = new FStringTable("empty");
 
+        /// <summary>
+        /// If a string is not found in this table, it will be searched for in FallbackTable
+        /// </summary>
+        public FStringTable FallbackTable;
+
+        public event EventHandler<string> MissingString;
+
         public readonly string Name;
         private readonly Dictionary<string, FStringDefinition> Entries
             = new Dictionary<string, FStringDefinition>(StringComparer.Ordinal);
@@ -31,27 +38,27 @@ namespace Squared.FString {
 
         public FStringTable (string name, Stream input)
             : this(name) {
-            PopulateFromXmlStream(input);
+            PopulateFromXmlStream(input, false);
         }
 
-        public void PopulateFromXmlStream (Stream input) {
+        public void PopulateFromXmlStream (Stream input, bool allowOverwrite) {
             var xrs = new XmlReaderSettings {
                 CloseInput = false,
             };
             using (var xr = XmlReader.Create(input, xrs)) {
                 // Seek to first file and then read each file
                 while (xr.ReadToFollowing("File"))
-                    PopulateFromXmlNode(xr);
+                    PopulateFromXmlNode(xr, allowOverwrite);
             }
         }
 
-        private void PopulateFromXmlNode (XmlReader xr) {
+        private void PopulateFromXmlNode (XmlReader xr, bool allowOverwrite) {
             while (xr.Read()) {
                 switch (xr.NodeType) {
                     case XmlNodeType.Element:
                         var name = xr.Name;
                         var formatString = xr.ReadElementContentAsString();
-                        Add(name, formatString);
+                        Add(name, formatString, allowOverwrite);
                         break;
                     case XmlNodeType.Whitespace:
                     case XmlNodeType.Comment:
@@ -66,9 +73,12 @@ namespace Squared.FString {
             }
         }
 
-        public FStringDefinition Add (string name, string formatString) {
+        public FStringDefinition Add (string name, string formatString, bool allowOverwrite = false) {
             var definition = FStringDefinition.Parse(name, formatString);
-            Entries.Add(name, definition);
+            if (allowOverwrite)
+                Entries[name] = definition;
+            else
+                Entries.Add(name, definition);
             return definition;
         }
 
@@ -76,20 +86,28 @@ namespace Squared.FString {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentNullException(nameof(name));
 
-            if (!Entries.TryGetValue(name, out var entry))
-                return FStringDefinition.Missing(name);
-            else
+            if (!Entries.TryGetValue(name, out var entry)) {
+                if (MissingString != null)
+                    MissingString(this, name);
+
+                if (!optional)
+                    throw new KeyNotFoundException(name);
+                else
+                    return FallbackTable?.Get(name, optional) ?? FStringDefinition.Missing(name);
+            } else
                 return entry;
         }
     }
 
     public class FStringDefinition {
         public readonly string Name;
+        public readonly bool IsMissing;
         public readonly List<(bool emit, string textOrId)> Opcodes =
             new List<(bool emit, string textOrId)>();
 
-        protected FStringDefinition (string name) {
+        protected FStringDefinition (string name, bool isMissing) {
             Name = name;
+            IsMissing = isMissing;
         }
 
         private static char GetChar (string s, int index) {
@@ -100,7 +118,7 @@ namespace Squared.FString {
         }
 
         public static FStringDefinition Parse (string name, string formatString) {
-            var result = new FStringDefinition(name);
+            var result = new FStringDefinition(name, false);
 
             var buildingEmit = false;
             int segmentStart = 0;
@@ -188,12 +206,7 @@ namespace Squared.FString {
         }
 
         public static FStringDefinition Missing (string name) {
-            return new FStringDefinition(name) {
-                Opcodes = {
-                    // FIXME: This allocating each time sucks, but is necessary for GetStringLiteral
-                    (false, "MISSING: " + name)
-                },
-            };
+            return new FStringDefinition(name, true);
         }
 
         public override string ToString () {
@@ -201,19 +214,28 @@ namespace Squared.FString {
         }
 
         public string GetStringLiteral () {
-            if ((Opcodes.Count != 1) || (Opcodes[0].emit))
+            if (IsMissing)
+                return $"<MISSING: {Name}>";
+            else if ((Opcodes.Count != 1) || (Opcodes[0].emit))
                 throw new InvalidOperationException("This string is not a literal");
             else
                 return Opcodes[0].textOrId;
         }
 
         public void AppendTo<TInstance> (ref TInstance instance, ref FStringBuilder output)
-            where TInstance : IFString {
-            foreach (var opcode in Opcodes) {
-                if (opcode.emit)
-                    instance.EmitValue(ref output, opcode.textOrId);
-                else
-                    output.Append(opcode.textOrId);
+            where TInstance : IFString 
+        {
+            if (IsMissing) {
+                output.Append("<MISSING: ");
+                output.Append(Name);
+                output.Append('>');
+            } else {
+                foreach (var opcode in Opcodes) {
+                    if (opcode.emit)
+                        instance.EmitValue(ref output, opcode.textOrId);
+                    else
+                        output.Append(opcode.textOrId);
+                }
             }
         }
     }
