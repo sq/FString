@@ -233,6 +233,8 @@ namespace Squared.FString {
         }
     }
 
+    // HACK: Prevent the MSVC debugger from obliterating our state in a terrible way
+    [DebuggerDisplay("{DebuggerDisplayText}")]
     public struct FStringBuilder : IDisposable {
         // Ensure the scratch builders are pre-allocated and have a good capacity.
         // If they're too small, Append operations can (????) allocate new StringBuilders. I don't know why the BCL does this.
@@ -246,6 +248,8 @@ namespace Squared.FString {
         internal StringBuilder Output;
         internal string Result;
 
+        internal string DebuggerDisplayText => $"FStringBuilder(OwnsOutput = {OwnsOutput}, Output.Length={Output?.Length}, Result='{Result}')";
+
         public FStringBuilder (StringBuilder output) {
             NumberFormatProvider = System.Globalization.NumberFormatInfo.CurrentInfo;
             OwnsOutput = false;
@@ -253,6 +257,7 @@ namespace Squared.FString {
             Result = null;
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private StringBuilder O {
             get {
                 if (Result != null)
@@ -268,11 +273,11 @@ namespace Squared.FString {
         }
 
         public void Append (char ch) {
-            O.Append(ch);
+            Output = O.Append(ch);
         }
 
         public void Append (string text) {
-            O.Append(text);
+            Output = O.Append(text);
         }
 
         public void Append (StringBuilder stringBuilder) {
@@ -280,6 +285,9 @@ namespace Squared.FString {
         }
 
         public void Append (IFString fstring) {
+            if (fstring == null)
+                return;
+
             // FIXME: Table selection
             fstring.AppendTo(O);
         }
@@ -322,7 +330,7 @@ namespace Squared.FString {
                     // FIXME: non-integral values without allocating (the default double append allocates :()
                     // This value.ToString() is still much more efficient than O.Append(value), oddly enough.
                     // The tradeoffs may be different in .NET 7, I haven't checked
-                    O.Append(value.ToString(NumberFormatProvider));
+                    Output = O.Append(value.ToString(NumberFormatProvider));
             }
         }
 
@@ -338,7 +346,7 @@ namespace Squared.FString {
             } while (length_calc > 0);
 
             // Pad out space for writing.
-            var string_builder = O.Append(' ', (int)length);
+            var string_builder = Output = O.Append(' ', (int)length);
             int strpos = string_builder.Length;
 
             while (length > 0) {
@@ -355,7 +363,7 @@ namespace Squared.FString {
 
         public void Append (long value) {
             if (value < 0) {
-                O.Append('-');
+                Output = O.Append('-');
                 ulong uint_val = ulong.MaxValue - ((ulong)value) + 1; //< This is to deal with Int32.MinValue
                 Append(uint_val);
             } else
@@ -374,15 +382,15 @@ namespace Squared.FString {
             var t = typeof(T);
             if (t.IsEnum) {
                 if (EnumNameCache<T>.Cache.TryGetValue(value, out var cachedName))
-                    O.Append(cachedName);
+                    Output = O.Append(cachedName);
                 else
-                    O.Append(value.ToString());
+                    Output = O.Append(value.ToString());
             } else if (t.IsValueType) {
-                O.Append(value.ToString());
+                Output = O.Append(value.ToString());
             } else if (value is IFString ifs) {
                 Append(ifs);
             } else if (value != null) {
-                O.Append(value.ToString());
+                Output = O.Append(value.ToString());
             }
         }
 
