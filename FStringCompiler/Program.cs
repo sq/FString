@@ -77,6 +77,20 @@ namespace FStringCompiler {
                             if (line.StartsWith("//")) {
                                 output.WriteLine(line);
                                 continue;
+                            } else if (line.EndsWith("=")) {
+                                if (input.EndOfStream) {
+                                    Console.Error.WriteLine($"error: {inputFile}({ln}): Expected string constant after = or on the line following it");
+                                    Environment.Exit(7);
+                                }
+
+                                var nextLine = input.ReadLine().Trim();
+                                if (!nextLine.StartsWith("$\"") && !nextLine.StartsWith("\"")) {
+                                    Console.Error.WriteLine($"error: {inputFile}({ln}): Expected string constant after = or on the line following it");
+                                    Environment.Exit(7);
+                                }
+
+                                ln++;
+                                line += nextLine;
                             }
 
                             try {
