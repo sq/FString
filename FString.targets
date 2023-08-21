@@ -1,7 +1,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <FStringCompilerPath>$(MSBuildThisFileDirectory)\FStringCompiler\bin\FStringCompiler.exe</FStringCompilerPath>
-    <FStringLibraryPath>$(MSBuildThisFileDirectory)\FString\FStrings.cs</FStringLibraryPath>
+    <FStringLibraryPath>$(MSBuildThisFileDirectory)\FString</FStringLibraryPath>
     <FStringOutputPath>$(MSBuildProjectDirectory)\obj\FStrings</FStringOutputPath>
     <FStringSentinelPath>$(FStringOutputPath)\.sentinel</FStringSentinelPath>
     <FStringDefaultCulture>eng</FStringDefaultCulture>
@@ -9,9 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(FStringLibraryPath)">
-      <Link>FString\FStrings.cs</Link>
-    </Compile>
+    <!-- Reference the library -->
+    <ProjectReference Include="$(FStringLibraryPath)\LibFString.csproj">
+      <Project>{91D1707E-393D-4A80-9C9C-AF33C707B76F}</Project>
+      <Name>LibFString</Name>
+    </ProjectReference>
     <ContentWithTargetPath Include="$(FStringOutputPath)\FStringTable_*.xml" TargetPath="%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <!-- Second copy to use for clean target below -->
     <FStringOutputs Include="$(FStringOutputPath)\*.cs">
