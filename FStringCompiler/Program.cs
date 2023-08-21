@@ -319,18 +319,17 @@ namespace FStringCompiler {
                 output.WriteLine("\t\t}");
 
                 // Generate the append overloads that make things usable dynamically
-                output.WriteLine("\t\tpublic void AppendTo (ref FStringBuilder output, FStringTable table) => table.Get(StringTableKey).AppendTo(ref this, ref output);");
-                output.WriteLine("\t\tpublic void AppendTo (ref FStringBuilder output) => AppendTo(ref output, FStringTable.Default);");
-                output.WriteLine("\t\tpublic void AppendTo (StringBuilder output) => AppendTo(output, FStringTable.Default);");
+                output.WriteLine("\t\tpublic void AppendTo (ref FStringBuilder output) => output.GetDefinition(StringTableKey).AppendTo(ref this, ref output);");
+                output.WriteLine("\t\tpublic void AppendTo (StringBuilder output) => AppendTo(output, null);");
                 output.WriteLine("\t\tpublic void AppendTo (StringBuilder output, FStringTable table) {");
-                output.WriteLine("\t\t\tvar fsb = new FStringBuilder(output);");
-                output.WriteLine("\t\t\ttable.Get(StringTableKey).AppendTo(ref this, ref fsb);");
+                output.WriteLine("\t\t\tvar fsb = new FStringBuilder(output, table);");
+                output.WriteLine("\t\t\tAppendTo(ref fsb);");
                 output.WriteLine("\t\t}");
 
                 // Generate ToString for simple uses
                 output.WriteLine("\t\tpublic override string ToString () {");
                 output.WriteLine("\t\t\tvar output = new FStringBuilder();");
-                output.WriteLine("\t\t\tAppendTo(ref output, FStringTable.Default);");
+                output.WriteLine("\t\t\tAppendTo(ref output);");
                 output.WriteLine("\t\t\treturn output.ToString();");
                 output.WriteLine("\t\t}");
 

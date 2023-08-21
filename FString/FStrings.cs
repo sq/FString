@@ -13,7 +13,6 @@ namespace Squared.FString {
     public interface IFString {
         string StringTableKey { get; }
         void EmitValue (ref FStringBuilder output, string id);
-        void AppendTo (ref FStringBuilder output, FStringTable table);
         void AppendTo (ref FStringBuilder output);
         void AppendTo (StringBuilder output, FStringTable table);
         void AppendTo (StringBuilder output);
@@ -244,7 +243,8 @@ namespace Squared.FString {
         private static readonly char[] ms_digits = new[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
         public IFormatProvider NumberFormatProvider;
-
+        public FStringTable DefaultStringTable;
+        
         internal bool OwnsOutput;
         internal StringBuilder Output;
         // HACK: Optimization for cases where all that happens is a single string gets appended to the builder
@@ -253,13 +253,17 @@ namespace Squared.FString {
 
         internal string DebuggerDisplayText => $"FStringBuilder(OwnsOutput = {OwnsOutput}, Output.Length={Output?.Length}, Result='{Result}')";
 
-        public FStringBuilder (StringBuilder output) {
+        public FStringBuilder (StringBuilder output, FStringTable stringTable = null) {
             NumberFormatProvider = System.Globalization.NumberFormatInfo.CurrentInfo;
+            DefaultStringTable = stringTable ?? FStringTable.Default;
             OwnsOutput = false;
             Output = output;
             Result = null;
             Prefix = null;
         }
+
+        public FStringDefinition GetDefinition (string name, bool optional = true) =>
+            (DefaultStringTable ?? FStringTable.Default).Get(name, optional);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private StringBuilder O {
@@ -298,8 +302,7 @@ namespace Squared.FString {
             if (fstring == null)
                 return;
 
-            // FIXME: Table selection
-            fstring.AppendTo(O);
+            fstring.AppendTo(O, DefaultStringTable ?? FStringTable.Default);
         }
 
         public void Append (uint? value) {
