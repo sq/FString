@@ -42,6 +42,7 @@
     <Compile Include="FString.cs" />
     <Compile Include="FStringBuilder.cs" />
     <Compile Include="FStringTable.cs" />
+    <Compile Include="FStringTableCollection.cs" />
     <Compile Include="FStringTableWriter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Util.cs" />

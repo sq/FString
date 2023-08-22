@@ -11,6 +11,8 @@ using System.Xml;
 using Squared.Util.Text;
 
 namespace Squared.FString {
+    public delegate void OnMissingString (FStringTable table, string key);
+
     public class FStringTable {
         public static FStringTable Default = new FStringTable("empty");
 
@@ -19,7 +21,7 @@ namespace Squared.FString {
         /// </summary>
         public FStringTable FallbackTable;
 
-        public event EventHandler<string> MissingString;
+        public event OnMissingString MissingString;
 
         public readonly string Name;
         private readonly Dictionary<string, FStringDefinition> Entries
@@ -84,6 +86,7 @@ namespace Squared.FString {
             return definition;
         }
 
+        // FIXME: Flow through caller information so it can be provided to the MissingString event handler
         public FStringDefinition Get (string name, bool optional = true) {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentNullException(nameof(name));
@@ -230,7 +233,9 @@ namespace Squared.FString {
         public string GetStringLiteral () {
             if (IsMissing)
                 return $"<MISSING: {Name}>";
-            else if ((Opcodes.Count != 1) || (Opcodes[0].emit))
+            else if (Opcodes.Count == 0)
+                return null;
+            else if ((Opcodes.Count != 1) || Opcodes[0].emit)
                 throw new InvalidOperationException("This string is not a literal");
             else
                 return Opcodes[0].textOrId;
