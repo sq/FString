@@ -29,27 +29,11 @@ namespace FStringCompiler {
             Directory.CreateDirectory(args[1]);
             Console.WriteLine($"Writing output to {args[1]}");
 
-            var started = DateTime.UtcNow;
-            var xws = new XmlWriterSettings {
-                Indent = true,
-                Encoding = Encoding.UTF8,
-                NewLineHandling = NewLineHandling.Entitize,
-                CloseOutput = true,
-                WriteEndDocumentOnClose = true,
-            };
             var commentBuffer = new StringBuilder();
-            using (var xmlWriter = XmlWriter.Create(Path.Combine(args[1], $"FStringTable_{args[0]}.xml"), xws)) {
-                xmlWriter.WriteStartDocument();
-                xmlWriter.WriteStartElement("FStringTable");
-                xmlWriter.WriteAttributeString("GeneratedUtc", started.ToString("o"));
-
+            using (var xmlWriter = new FStringTableWriter(Path.Combine(args[1], $"FStringTable_{args[0]}.xml"))) {
                 foreach (var inputFile in args.Skip(2).Distinct().OrderBy(s => s)) {
                     Console.WriteLine(inputFile);
-                    xmlWriter.WriteStartElement("File");
-
-                    xmlWriter.WriteAttributeString("SourcePath", inputFile);
-                    xmlWriter.WriteAttributeString("SourceCreatedUtc", File.GetCreationTimeUtc(inputFile).ToString("o"));
-                    xmlWriter.WriteAttributeString("SourceModifiedUtc", File.GetLastWriteTimeUtc(inputFile).ToString("o"));
+                    xmlWriter.StartFile(inputFile, File.GetLastWriteTimeUtc(inputFile));
 
                     int ln = 0;
                     var inClass = false;
@@ -174,12 +158,7 @@ namespace FStringCompiler {
                         if (inClass)
                             output.WriteLine("}");
                     }
-
-                    xmlWriter.WriteEndElement();
                 }
-
-                xmlWriter.WriteEndElement();
-                xmlWriter.WriteEndDocument();
 
                 void AutoWriteComments () {
                     if (commentBuffer.Length <= 0)
@@ -220,10 +199,10 @@ namespace FStringCompiler {
             Selector = m.Groups["selector"].Value;
         }
 
-        internal void Write (StreamWriter output, XmlWriter xmlWriter) {
+        internal void Write (StreamWriter output, FStringTableWriter writer) {
             foreach (var value in Cases.Values) {
                 // Only generate all the code the first time.
-                value.Write(output, xmlWriter);
+                value.Write(output, writer);
                 output = null;
             }
         }
@@ -265,12 +244,10 @@ namespace FStringCompiler {
                 throw new Exception("{this} is invalid in FStrings");
         }
 
-        public void Write (StreamWriter output, XmlWriter xmlWriter) {
+        public void Write (StreamWriter output, FStringTableWriter writer) {
             if (Switch != null)
-                xmlWriter.WriteComment($" ({Switch.Selector}) = {Name} ");
-            xmlWriter.WriteStartElement(StringTableKey);
-            xmlWriter.WriteString(FormatString);
-            xmlWriter.WriteEndElement();
+                writer.WriteComment($" ({Switch.Selector}) == {Name} ");
+            writer.WriteEntry(StringTableKey, FormatString);
 
             if (output == null)
                 return;
@@ -355,31 +332,5 @@ namespace FStringCompiler {
 
         private static IEnumerable<string> GetIds (FStringDefinition definition) =>
             definition.Opcodes.Where(o => o.emit).Select(o => o.textOrId);
-    }
-
-    public static class HashUtil {
-        static ThreadLocal<SHA256> Hasher = new ThreadLocal<SHA256>(() => SHA256.Create());
-        static ThreadLocal<StringBuilder> StringBuilder = new ThreadLocal<StringBuilder>(() => new StringBuilder());
-
-        public static string GetShortHash (string text) {
-            return GetShortHash(Encoding.UTF8.GetBytes(text));
-        }
-
-        public static string GetShortHash (byte[] bytes) {
-            return GetHashString(bytes, 0, bytes.Length);
-        }
-
-        public static string GetHashString (byte[] bytes, int offset, int count, int hashLength = 8) {
-            var hash = Hasher.Value;
-            var sb = StringBuilder.Value;
-            sb.Clear();
-            var hashBytes = hash.ComputeHash(bytes, offset, count);
-            hashLength = Math.Min(hashBytes.Length, hashLength);
-            for (int i = 0; i < hashLength; i++) {
-                var b = hashBytes[i];
-                sb.Append(b.ToString("x2"));
-            }
-            return sb.ToString();
-        }
     }
 }

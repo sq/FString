@@ -42,9 +42,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\FString\FStrings.cs">
-      <Link>FStrings.cs</Link>
-    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -55,6 +52,10 @@
     <ProjectReference Include="..\..\Fracture\Squared\Util\Squared.Util.csproj">
       <Project>{D7F549CF-E0A6-491C-A78C-ECAB590BB2A7}</Project>
       <Name>Squared.Util</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\FString\LibFString.csproj">
+      <Project>{91d1707e-393d-4a80-9c9c-af33c707b76f}</Project>
+      <Name>LibFString</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

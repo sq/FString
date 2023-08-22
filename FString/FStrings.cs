@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,6 +74,15 @@ namespace Squared.FString {
             }
         }
 
+        public FStringDefinition AddRaw (string name, string text, bool allowOverwrite = false) {
+            var definition = FStringDefinition.Raw(name, text);
+            if (allowOverwrite)
+                Entries[name] = definition;
+            else
+                Entries.Add(name, definition);
+            return definition;
+        }
+
         public FStringDefinition Add (string name, string formatString, bool allowOverwrite = false) {
             var definition = FStringDefinition.Parse(name, formatString);
             if (allowOverwrite)
@@ -100,6 +110,8 @@ namespace Squared.FString {
     }
 
     public class FStringDefinition {
+        private static readonly Dictionary<string, FStringDefinition> MissingStringCache = new Dictionary<string, FStringDefinition>();
+
         public readonly string Name;
         public readonly bool IsMissing;
         public readonly List<(bool emit, string textOrId)> Opcodes =
@@ -115,6 +127,12 @@ namespace Squared.FString {
                 return '\0';
             else
                 return s[index];
+        }
+
+        public static FStringDefinition Raw (string name, string text) {
+            var result = new FStringDefinition(name, false);
+            result.Opcodes.Add((false, text));
+            return result;
         }
 
         public static FStringDefinition Parse (string name, string formatString) {
@@ -206,7 +224,11 @@ namespace Squared.FString {
         }
 
         public static FStringDefinition Missing (string name) {
-            return new FStringDefinition(name, true);
+            lock (MissingStringCache) {
+                if (!MissingStringCache.TryGetValue(name, out var result))
+                    MissingStringCache[name] = result = new FStringDefinition(name, true);
+                return result;
+            }
         }
 
         public override string ToString () {
@@ -455,5 +477,31 @@ namespace Squared.FString {
 
         public static implicit operator FStringBuilder (StringBuilder stringBuilder)
             => new FStringBuilder(stringBuilder);
+    }
+
+    public static class HashUtil {
+        static ThreadLocal<SHA256> Hasher = new ThreadLocal<SHA256>(() => SHA256.Create());
+        static ThreadLocal<StringBuilder> StringBuilder = new ThreadLocal<StringBuilder>(() => new StringBuilder());
+
+        public static string GetShortHash (string text) {
+            return GetShortHash(Encoding.UTF8.GetBytes(text));
+        }
+
+        public static string GetShortHash (byte[] bytes) {
+            return GetHashString(bytes, 0, bytes.Length);
+        }
+
+        public static string GetHashString (byte[] bytes, int offset, int count, int hashLength = 8) {
+            var hash = Hasher.Value;
+            var sb = StringBuilder.Value;
+            sb.Clear();
+            var hashBytes = hash.ComputeHash(bytes, offset, count);
+            hashLength = Math.Min(hashBytes.Length, hashLength);
+            for (int i = 0; i < hashLength; i++) {
+                var b = hashBytes[i];
+                sb.Append(b.ToString("x2"));
+            }
+            return sb.ToString();
+        }
     }
 }
