@@ -51,16 +51,24 @@ namespace Squared.FString {
             while (xr.Read()) {
                 switch (xr.NodeType) {
                     case XmlNodeType.Element:
-                        var name = xr.Name;
+                        var isLiteral = xr.Name == "Literal";
+                        if ((xr.Name != "String") && (xr.Name != "Literal"))
+                            throw new Exception($"Unexpected element '{xr.Name}'");
+                        var name = xr.GetAttribute("Name");
                         var formatString = xr.ReadElementContentAsString();
-                        Add(name, formatString, allowOverwrite);
+                        if (isLiteral)
+                            AddRaw(name, formatString, allowOverwrite);
+                        else
+                            Add(name, formatString, allowOverwrite);
                         break;
                     case XmlNodeType.Whitespace:
                     case XmlNodeType.Comment:
                         break;
                     case XmlNodeType.EndElement:
-                        if (xr.Name == "File")
+                        if ((xr.Name == "File") || (xr.Name == "FStringTable"))
                             return;
+                        else if (xr.Name != "String")
+                            throw new Exception($"Unexpected end of element '{xr.Name}'");
                         break;
                     default:
                         return;
@@ -230,13 +238,15 @@ namespace Squared.FString {
             return $"String '{Name}'";
         }
 
+        public bool IsLiteral => (Opcodes.Count <= 1) && (Opcodes.FirstOrDefault().emit != true);
+
         public string GetStringLiteral () {
             if (IsMissing)
                 return $"<MISSING: {Name}>";
             else if (Opcodes.Count == 0)
                 return null;
             else if ((Opcodes.Count != 1) || Opcodes[0].emit)
-                throw new InvalidOperationException("This string is not a literal");
+                throw new InvalidOperationException($"{Name} is not a literal");
             else
                 return Opcodes[0].textOrId;
         }

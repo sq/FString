@@ -27,7 +27,7 @@ namespace Squared.FString {
         }
 
         public FStringTableWriter (string path) 
-            : this (File.OpenWrite(path)) 
+            : this (File.Open(path, FileMode.Create)) 
         {
         }
 
@@ -58,8 +58,9 @@ namespace Squared.FString {
             Writer.Dispose();
         }
 
-        public void WriteEntry (string key, string text) {
-            Writer.WriteStartElement(key);
+        public void WriteEntry (string key, string text, bool isLiteral) {
+            Writer.WriteStartElement(isLiteral ? "Literal" : "String");
+            Writer.WriteAttributeString("Name", key);
             Writer.WriteString(text);
             Writer.WriteEndElement();
         }
