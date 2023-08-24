@@ -27,6 +27,8 @@ namespace Squared.FString {
         private readonly Dictionary<string, FStringDefinition> Entries
             = new Dictionary<string, FStringDefinition>(StringComparer.Ordinal);
 
+        public string Path { get; internal set; }
+
         public FStringTable (string name) {
             Name = name;
         }
@@ -35,6 +37,9 @@ namespace Squared.FString {
             : this(name) {
             PopulateFromXmlStream(input, false);
         }
+
+        public void Clear () => Entries.Clear();
+        public int Count => Entries.Count;
 
         public void PopulateFromXmlStream (Stream input, bool allowOverwrite) {
             var xrs = new XmlReaderSettings {
