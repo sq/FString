@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Squared.Util;
 using Squared.Util.Text;
 
 namespace Squared.FString {
@@ -167,6 +168,46 @@ namespace Squared.FString {
             text.Value.CopyTo(O);
         }
 
+        static class UnboxedFStringAppendHelper {
+            private static readonly Dictionary<Type, IUnboxedFStringAppendHelper> Helpers = 
+                new Dictionary<Type, IUnboxedFStringAppendHelper>(new ReferenceComparer<Type>());
+
+            public static bool TryAppend<T> (ref FStringBuilder output, ref T value) {
+                var t = typeof(T);
+                bool foundCacheEntry;
+                IUnboxedFStringAppendHelper helper;
+
+                lock (Helpers)
+                    foundCacheEntry = Helpers.TryGetValue(t, out helper);
+
+                if (!foundCacheEntry) {
+                    if (typeof(IFString).IsAssignableFrom(t)) {
+                        var helperType = typeof(UnboxedFStringAppendHelper<>).MakeGenericType(t);
+                        helper = (IUnboxedFStringAppendHelper)Activator.CreateInstance(helperType);
+                    }
+
+                    lock (Helpers)
+                        Helpers[t] = helper;
+                }
+
+                if (helper == null)
+                    return false;
+
+                helper.Append(ref output, __makeref(value));
+                return true;
+            }
+        }
+
+        interface IUnboxedFStringAppendHelper {
+            void Append (ref FStringBuilder output, TypedReference value);
+        }
+        
+        class UnboxedFStringAppendHelper<T> : IUnboxedFStringAppendHelper where T : IFString {
+            public void Append (ref FStringBuilder output, TypedReference value) {
+                __refvalue(value, T).AppendTo(ref output);
+            }
+        }
+        
         public void Append<T> (T value) {
             var t = typeof(T);
             if (t.IsEnum) {
@@ -174,10 +215,11 @@ namespace Squared.FString {
                     Append(cachedName);
                 else
                     Append(value.ToString());
+            } else if (UnboxedFStringAppendHelper.TryAppend(ref this, ref value)) {
+                ;
             } else if (t.IsValueType) {
+                // We do a valuetype check to avoid the boxing operation necessary to do 'value != null' below
                 Append(value.ToString());
-            } else if (value is IFString ifs) {
-                Append(ifs);
             } else if (value != null) {
                 Append(value.ToString());
             }
