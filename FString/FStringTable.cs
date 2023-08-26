@@ -82,7 +82,7 @@ namespace Squared.FString {
         }
 
         public FStringDefinition AddRaw (string name, string text, bool allowOverwrite = false) {
-            var definition = FStringDefinition.Raw(name, text);
+            var definition = FStringDefinition.Parse(this, name, text, true);
             if (allowOverwrite)
                 Entries[name] = definition;
             else
@@ -91,7 +91,7 @@ namespace Squared.FString {
         }
 
         public FStringDefinition Add (string name, string formatString, bool allowOverwrite = false) {
-            var definition = FStringDefinition.Parse(name, formatString);
+            var definition = FStringDefinition.Parse(this, name, formatString, false);
             if (allowOverwrite)
                 Entries[name] = definition;
             else
@@ -111,7 +111,7 @@ namespace Squared.FString {
                 if (!optional)
                     throw new KeyNotFoundException(name);
                 else
-                    return FallbackTable?.Get(name, optional) ?? FStringDefinition.Missing(name);
+                    return FallbackTable?.Get(name, optional) ?? FStringDefinition.Missing(this, name);
             } else
                 return entry;
         }
@@ -120,12 +120,14 @@ namespace Squared.FString {
     public class FStringDefinition {
         private static readonly Dictionary<string, FStringDefinition> MissingStringCache = new Dictionary<string, FStringDefinition>();
 
+        public readonly FStringTable Table;
         public readonly string Name;
         public readonly bool IsMissing;
         public readonly List<(bool emit, string textOrId)> Opcodes =
             new List<(bool emit, string textOrId)>();
 
-        protected FStringDefinition (string name, bool isMissing) {
+        protected FStringDefinition (FStringTable table, string name, bool isMissing) {
+            Table = table;
             Name = name;
             IsMissing = isMissing;
         }
@@ -137,14 +139,14 @@ namespace Squared.FString {
                 return s[index];
         }
 
-        public static FStringDefinition Raw (string name, string text) {
-            var result = new FStringDefinition(name, false);
+        public static FStringDefinition Raw (FStringTable table, string name, string text) {
+            var result = new FStringDefinition(table, name, false);
             result.Opcodes.Add((false, text));
             return result;
         }
 
-        public static FStringDefinition Parse (string name, string formatString) {
-            var result = new FStringDefinition(name, false);
+        public static FStringDefinition Parse (FStringTable table, string name, string formatString, bool escapesOnly) {
+            var result = new FStringDefinition(table, name, false);
 
             var buildingEmit = false;
             int segmentStart = 0;
@@ -160,58 +162,75 @@ namespace Squared.FString {
                         break;
 
                     case '{':
-                        if (buildingEmit)
-                            throw new Exception($"Unexpected '{{' inside of expansion value in string {name}");
+                        if (!escapesOnly) {
+                            if (buildingEmit)
+                                throw new Exception($"Unexpected '{{' inside of expansion value in string {name}");
 
-                        AddSegment(i);
+                            AddSegment(i);
 
-                        if (GetChar(formatString, i + 1) == '{') {
-                            i++;
-                            result.Opcodes.Add((false, "{"));
-                        } else {
-                            buildingEmit = true;
+                            if (GetChar(formatString, i + 1) == '{') {
+                                i++;
+                                AddString("{");
+                            } else {
+                                buildingEmit = true;
+                            }
+                            segmentStart = i + 1;
                         }
-                        segmentStart = i + 1;
                         break;
 
                     case '}':
-                        var wasBuildingEmit = buildingEmit;
-                        AddSegment(i);
+                        if (!escapesOnly) {
+                            var wasBuildingEmit = buildingEmit;
+                            AddSegment(i);
 
-                        if (GetChar(formatString, i + 1) == '}') {
-                            if (wasBuildingEmit)
-                                throw new Exception($"Unexpected '}}' inside of expansion value in string {name}");
-                            i++;
-                            result.Opcodes.Add((false, "}"));
+                            if (GetChar(formatString, i + 1) == '}') {
+                                if (wasBuildingEmit)
+                                    throw new Exception($"Unexpected '}}' inside of expansion value in string {name}");
+                                i++;
+                                AddString("}");
+                            }
+
+                            segmentStart = i + 1;
                         }
-
-                        segmentStart = i + 1;
                         break;
                 }
             }
 
             AddSegment(formatString.Length);
 
+            void AddString (string text) {
+                if (result.Opcodes.Count > 0) {
+                    var previousOpcode = result.Opcodes[result.Opcodes.Count - 1];
+                    // Merge the two strings. This will occur for escape sequences
+                    if (!previousOpcode.emit) {
+                        text = previousOpcode.textOrId + text;
+                        result.Opcodes.RemoveAt(result.Opcodes.Count - 1);
+                    }
+                }
+
+                result.Opcodes.Add((false, text));
+            }
+
             int AddEscape (char ch, int offset) {
                 switch (ch) {
                     case 'u':
                         var hex = formatString.Substring(offset + 1, 4);
                         var ch2 = (char)int.Parse(hex, System.Globalization.NumberStyles.HexNumber);
-                        result.Opcodes.Add((false, new string(ch2, 1)));
+                        AddString(new string(ch2, 1));
                         return 5;
                     default:
                         throw new NotImplementedException($"Escape sequence \\{ch}");
                     case 't':
-                        result.Opcodes.Add((false, "\t"));
+                        AddString("\t");
                         return 1;
                     case 'r':
-                        result.Opcodes.Add((false, "\r"));
+                        AddString("\r");
                         return 1;
                     case 'n':
-                        result.Opcodes.Add((false, "\n"));
+                        AddString("\n");
                         return 1;
                     case '0':
-                        result.Opcodes.Add((false, "\0"));
+                        AddString("\0");
                         return 1;
                 }
             }
@@ -220,21 +239,22 @@ namespace Squared.FString {
                 if (end <= segmentStart)
                     return;
 
-                // Create an ImmutableAbstractString with a pre-populated hash code.
                 var text = formatString.Substring(segmentStart, end - segmentStart);
-                if (buildingEmit)
+                if (buildingEmit) {
                     text = string.Intern(text);
-                result.Opcodes.Add((buildingEmit, text));
+                    result.Opcodes.Add((buildingEmit, text));
+                } else
+                    AddString(text);
                 buildingEmit = false;
             }
 
             return result;
         }
 
-        public static FStringDefinition Missing (string name) {
+        public static FStringDefinition Missing (FStringTable table, string name) {
             lock (MissingStringCache) {
                 if (!MissingStringCache.TryGetValue(name, out var result))
-                    MissingStringCache[name] = result = new FStringDefinition(name, true);
+                    MissingStringCache[name] = result = new FStringDefinition(table, name, true);
                 return result;
             }
         }

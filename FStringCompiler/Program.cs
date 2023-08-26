@@ -250,7 +250,7 @@ namespace FStringCompiler {
                 swtch.Cases.Add(Name, this);
             StringTableKey = (swtch != null) ? $"{swtch.Name}_{HashUtil.GetShortHash(Name)}" : Name;
             FormatString = m.Groups["text"].Value;
-            Definition = FStringDefinition.Parse(Name, FormatString);
+            Definition = FStringDefinition.Parse(null, Name, FormatString, false);
             if (Definition.Opcodes.Any(o => o.emit && o.textOrId == "this"))
                 throw new Exception("{this} is invalid in FStrings");
         }
@@ -266,8 +266,8 @@ namespace FStringCompiler {
             var structName = Switch?.Name ?? Name;
 
             if (Group.Arguments.Count == 0) {
-                output.WriteLine($"\tpublic static string {Name} () => {Name}(FStringTable.Default);");
-                output.WriteLine($"\tpublic static string {Name} (FStringTable table) => table.Get(\"{StringTableKey}\").GetStringLiteral();");
+                output.WriteLine($"\tpublic static FStringLiteral {Name} () => {Name}(FStringTable.Default);");
+                output.WriteLine($"\tpublic static FStringLiteral {Name} (FStringTable table) => new FStringLiteral(table.Get(\"{StringTableKey}\"));");
             } else {
                 output.WriteLine($"\tpublic struct {structName} : IFString {{");
 
