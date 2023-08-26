@@ -82,6 +82,17 @@ namespace FStringCompiler {
                                 line += nextLine;
                             }
 
+                            while (line.EndsWith("\\")) {
+                                if (input.EndOfStream) {
+                                    Console.Error.WriteLine($"error: {inputFile}({ln}): File ended after \\");
+                                    Environment.Exit(8);
+                                }
+
+                                var nextLine = input.ReadLine().Trim();
+                                ln++;
+                                line = line.Substring(0, line.Length - 1) + nextLine;
+                            }
+
                             try {
                                 if (group == null) {
                                     if (UsingRegex.IsMatch(line)) {
