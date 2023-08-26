@@ -16,9 +16,9 @@ namespace FStringCompiler {
         private static readonly Regex UsingRegex = new Regex(@"^using .+?;", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
             FunctionSignatureRegex = new Regex(@"^\(((?<type>(\w|\?)+)\s+(?<argName>\w+)\s*,?\s*)*\)\s*\{", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
             // HACK: Including " in the name regex for switch cases
-            StringRegex = new Regex("^(?<name>(\\w|[\"\\.\\-])+)\\s*=\\s*(null|\\$?\"(?<text>.*)\");", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
+            StringRegex = new Regex("^(?<name>(\\w|[\"\\.\\-])+)\\s*=\\s*(null|(?<buck>\\$)?\"(?<text>.*)\");", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
             CasesRegex = new Regex(@"^\s*(?<name>\w+)\s*=\s*switch\s*\((?<selector>.*)\)\s*{", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
-            StandaloneStringRegex = new Regex("^(?<name>\\w+)\\s*\\(((?<type>(\\w|\\?)+)\\s+(?<argName>\\w+)\\s*,?\\s*)*\\)\\s*=\\s*(null|\\$?\"(?<text>.*)\");", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+            StandaloneStringRegex = new Regex("^(?<name>\\w+)\\s*\\(((?<type>(\\w|\\?)+)\\s+(?<argName>\\w+)\\s*,?\\s*)*\\)\\s*=\\s*(null|(?<buck>\\$)?\"(?<text>.*)\");", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
 
         public static void Main (string[] args) {
             if (args.Length < 3) {
@@ -250,7 +250,7 @@ namespace FStringCompiler {
                 swtch.Cases.Add(Name, this);
             StringTableKey = (swtch != null) ? $"{swtch.Name}_{HashUtil.GetShortHash(Name)}" : Name;
             FormatString = m.Groups["text"].Value;
-            Definition = FStringDefinition.Parse(null, Name, FormatString, false);
+            Definition = FStringDefinition.Parse(null, Name, FormatString, !m.Groups["buck"].Success);
             if (Definition.Opcodes.Any(o => o.emit && o.textOrId == "this"))
                 throw new Exception("{this} is invalid in FStrings");
         }
