@@ -19,7 +19,7 @@ namespace Squared.FString {
         private static readonly ThreadLocal<StringBuilder> ScratchBuilder = new ThreadLocal<StringBuilder>(() => new StringBuilder(DefaultStringBuilderSize));
         private static readonly char[] ms_digits = new[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
-        public IFormatProvider NumberFormatProvider;
+        public IFormatProvider FormatProvider;
         public FStringTable DefaultStringTable;
         
         internal bool OwnsOutput;
@@ -31,7 +31,7 @@ namespace Squared.FString {
         internal string DebuggerDisplayText => $"FStringBuilder(OwnsOutput = {OwnsOutput}, Output.Length={Output?.Length}, Result='{Result}')";
 
         public FStringBuilder (StringBuilder output, FStringTable stringTable = null) {
-            NumberFormatProvider = System.Globalization.NumberFormatInfo.CurrentInfo;
+            FormatProvider = System.Globalization.CultureInfo.CurrentCulture;
             DefaultStringTable = stringTable ?? FStringTable.Default;
             OwnsOutput = false;
             Output = output;
@@ -73,6 +73,15 @@ namespace Squared.FString {
 
         public void Append (StringBuilder stringBuilder) {
             stringBuilder.CopyTo(O);
+        }
+
+        public void Append (IFormattable formattable) {
+            if (formattable == null)
+                return;
+
+            // If the specialized ToString returns null that indicates we should use the default one.
+            var str = formattable.ToString(null, FormatProvider) ?? formattable.ToString();
+            Append(str);
         }
 
         public void Append (IFString fstring) {
@@ -120,7 +129,7 @@ namespace Squared.FString {
                     // FIXME: non-integral values without allocating (the default double append allocates :()
                     // This value.ToString() is still much more efficient than O.Append(value), oddly enough.
                     // The tradeoffs may be different in .NET 7, I haven't checked
-                    Append(value.ToString(NumberFormatProvider));
+                    Append(value.ToString(FormatProvider));
             }
         }
 

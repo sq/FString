@@ -11,7 +11,7 @@ namespace Squared.FString {
         protected readonly Dictionary<(string folder, string name), FStringTable> Cache = 
             new Dictionary<(string folder, string name), FStringTable>();
 
-        public string Language = CultureInfo.CurrentCulture.ThreeLetterISOLanguageName;
+        public string Language = CultureInfo.CurrentCulture.Name;
         public event OnMissingString MissingString;
 
         private OnMissingString ForwardOnMissingString;

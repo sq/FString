@@ -22,7 +22,7 @@ namespace FStringCompiler {
 
         public static void Main (string[] args) {
             if (args.Length < 3) {
-                Console.Error.WriteLine("Usage: fstringcompiler [ISO language name] [output directory] [input files...]");
+                Console.Error.WriteLine("Usage: fstringcompiler [language name] [output directory] [input files...]");
                 Environment.Exit(1);
             }
 

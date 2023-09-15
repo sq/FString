@@ -4,7 +4,7 @@
     <FStringLibraryPath>$(MSBuildThisFileDirectory)\FString</FStringLibraryPath>
     <FStringOutputPath>$(MSBuildProjectDirectory)\obj\FStrings</FStringOutputPath>
     <FStringSentinelPath>$(FStringOutputPath)\.sentinel</FStringSentinelPath>
-    <FStringDefaultCulture>eng</FStringDefaultCulture>
+    <FStringDefaultCulture>en-US</FStringDefaultCulture>
     <FStringMainXmlPath>$(FStringOutputPath)\FStringTable_$(FStringDefaultCulture).xml</FStringMainXmlPath>
   </PropertyGroup>
 
@@ -30,7 +30,7 @@
   </Target>
 
   <Target Name="CompileFStrings" BeforeTargets="BeforeCompile" Inputs="@(FStringTable)" Outputs="@(FStringMainXmlPath);@(FStringTable->'$(FStringOutputPath)\%(Filename).cs')">
-    <Message Importance="High" Text="Compiling FStrings" />
+    <Message Importance="High" Text="Compiling FStrings with OutputPath=$(FStringOutputPath) and default culture $(FStringDefaultCulture)" />
 
     <!-- pass the paths of all the FStringTable files as a quoted list to the compiler -->
     <Exec Command="&quot;$(FStringCompilerPath)&quot; $(FStringDefaultCulture) &quot;$(FStringOutputPath)&quot; @(FStringTable->'&quot;%(FullPath)&quot;', ' ')" />
