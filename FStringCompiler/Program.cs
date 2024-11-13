@@ -30,7 +30,7 @@ namespace FStringCompiler {
             Console.WriteLine($"Writing output to {args[1]}");
 
             var commentBuffer = new StringBuilder();
-            using (var xmlWriter = new FStringTableWriter(Path.Combine(args[1], $"FStringTable_{args[0]}.xml"))) {
+            using (var xmlWriter = new FStringTableWriter(Path.Combine(args[1], $"FStringTable_{args[0]}.xml"), args[0])) {
                 foreach (var inputFile in args.Skip(2).Distinct().OrderBy(s => s)) {
                     Console.WriteLine(inputFile);
                     xmlWriter.StartFile(inputFile, File.GetLastWriteTimeUtc(inputFile));
@@ -256,9 +256,10 @@ namespace FStringCompiler {
         }
 
         public void Write (StreamWriter output, FStringTableWriter writer) {
+            // FIXME: Defer for sorting? Probably better to keep source file ordering
             if (Switch != null)
                 writer.WriteComment($" ({Switch.Selector}) == {Name} ");
-            writer.WriteEntry(StringTableKey, FormatString, Definition.IsLiteral);
+            writer.WriteEntry(StringTableKey, FormatString, HashUtil.GetShortHash(FormatString), Definition.IsLiteral);
 
             if (output == null)
                 return;
