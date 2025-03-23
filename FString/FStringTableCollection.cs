@@ -29,26 +29,31 @@ namespace Squared.FString {
         private string BuildPath (string folder, string name, string language) =>
             Path.Combine(folder, $"{name}_{language}.xml");
 
+        private void Reload ((string folder, string name) key, FStringTable table) {
+            // HACK
+            if (Language == "missing") {
+                table.Clear();
+                return;
+            }
+
+            var path = BuildPath(key);
+            if (!File.Exists(path)) {
+                System.Diagnostics.Debug.WriteLine($"String table missing during reload: '{path}'");
+                return;
+            }
+
+            using (var stream = File.OpenRead(path)) {
+                table.Path = path;
+                table.Clear();
+                table.PopulateFromXmlStream(stream, true);
+                System.Diagnostics.Debug.WriteLine($"Reloaded string table '{path}'");
+            }
+        }
+
         public void ReloadAll () {
             lock (Cache) {
-                foreach (var kvp in Cache) {
-                    // HACK
-                    if (Language == "missing") {
-                        kvp.Value.Clear();
-                        continue;
-                    }
-
-                    var path = BuildPath(kvp.Key);
-                    if (!File.Exists(path)) {
-                        System.Diagnostics.Debug.WriteLine($"File missing during reload: {path}");
-                        continue;
-                    }
-                    using (var stream = File.OpenRead(path)) {
-                        kvp.Value.Path = path;
-                        kvp.Value.Clear();
-                        kvp.Value.PopulateFromXmlStream(stream, true);
-                    }
-                }
+                foreach (var kvp in Cache)
+                    Reload(kvp.Key, kvp.Value);
             }
         }
 
@@ -57,12 +62,15 @@ namespace Squared.FString {
                 Cache.Clear();
         }
 
-        public FStringTable LoadFromPath (string folder, string name, bool optional) {
+        public FStringTable LoadFromPath (string folder, string name, bool optional, bool forceReload = false) {
             FStringTable result;
             var key = (folder, name);
             lock (Cache)
-                if (Cache.TryGetValue(key, out result))
+                if (Cache.TryGetValue(key, out result)) {
+                    if (forceReload)
+                        Reload(key, result);
                     return result;
+                }
 
             var path = BuildPath(key);
             if (!File.Exists(path) && optional)
@@ -76,8 +84,11 @@ namespace Squared.FString {
             }
 
             lock (Cache) {
-                if (Cache.TryGetValue(key, out var lostARace))
+                if (Cache.TryGetValue(key, out var lostARace)) {
+                    if (forceReload)
+                        Reload(key, lostARace);
                     return lostARace;
+                }
 
                 Cache[key] = result;
                 return result;

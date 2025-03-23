@@ -269,7 +269,7 @@ namespace Squared.FString {
             if (IsMissing)
                 return $"<MISSING: {Name}>";
             else if (Opcodes.Count == 0)
-                return null;
+                return "";
             else if ((Opcodes.Count != 1) || Opcodes[0].emit)
                 throw new InvalidOperationException($"{Name} is not a literal");
             else
