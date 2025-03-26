@@ -47,8 +47,17 @@ namespace Squared.FString {
             };
             using (var xr = XmlReader.Create(input, xrs)) {
                 // Seek to first file and then read each file
-                while (xr.ReadToFollowing("File"))
-                    PopulateFromXmlNode(xr, allowOverwrite);
+                while (xr.ReadToFollowing("File")) {
+                    if (xr.IsEmptyElement)
+                        continue;
+
+                    try {
+                        PopulateFromXmlNode(xr, allowOverwrite);
+                    } catch (Exception exc) {
+                        var fs = input as FileStream;
+                        throw new Exception($"Parse error in file {fs?.Name ?? "unknown"}: {exc.Message}", exc);
+                    }
+                }
             }
         }
 
@@ -58,7 +67,7 @@ namespace Squared.FString {
                     case XmlNodeType.Element:
                         var isLiteral = xr.Name == "Literal";
                         if ((xr.Name != "String") && (xr.Name != "Literal"))
-                            throw new Exception($"Unexpected element '{xr.Name}'");
+                            throw new Exception($"Unexpected element '{xr.Name}', expected String or Literal");
                         var name = xr.GetAttribute("Name");
                         var formatString = xr.ReadElementContentAsString();
                         if (isLiteral)
@@ -73,7 +82,7 @@ namespace Squared.FString {
                         if ((xr.Name == "File") || (xr.Name == "FStringTable"))
                             return;
                         else if (xr.Name != "String")
-                            throw new Exception($"Unexpected end of element '{xr.Name}'");
+                            throw new Exception($"Unexpected end of element '{xr.Name}', expected String");
                         break;
                     default:
                         return;
