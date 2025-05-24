@@ -326,7 +326,7 @@ namespace FStringCompiler {
                     // We need a way to store the fstring without boxing first though...
                     // if (Group.Arguments.Any(a => (a.Name == key) && (a.Type == "IFString"))
                     if (IsTypeKnownToBeFString(key))
-                        output.WriteLine($"\t\t\t\t\toutput.AppendFString({key});");
+                        output.WriteLine($"\t\t\t\t\t({key}).AppendTo(ref output);");
                     else
                         output.WriteLine($"\t\t\t\t\toutput.Append({key});");
                     output.WriteLine($"\t\t\t\t\treturn;");
