@@ -13,6 +13,9 @@ using Squared.FString;
 
 namespace FStringCompiler {
     class Program {
+        // HACK
+        public static HashSet<string> KnownFStringKeys = new HashSet<string>(StringComparer.Ordinal);
+
         private static readonly Regex UsingRegex = new Regex(@"^using .+?;", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
             FunctionSignatureRegex = new Regex(@"^\(((?<type>(\w|\?)+)\s+(?<argName>\w+)\s*,?\s*)*\)\s*\{", RegexOptions.Compiled | RegexOptions.ExplicitCapture),
             // HACK: Including " in the name regex for switch cases
@@ -246,8 +249,16 @@ namespace FStringCompiler {
             Group = group;
             Switch = swtch;
             Name = m.Groups["name"].Value;
+
+            // HACK: Used for inference of whether an fstring argument is also an fstring, to avoid boxing
+            var actualKey = swtch?.Name ?? Name;
+            if ((swtch == null) && Program.KnownFStringKeys.Contains(actualKey))
+                throw new Exception($"Duplicate definition for string '{actualKey}'");
+            Program.KnownFStringKeys.Add(actualKey);
+
             if (swtch != null)
                 swtch.Cases.Add(Name, this);
+
             StringTableKey = (swtch != null) ? $"{swtch.Name}_{HashUtil.GetShortHash(Name)}" : Name;
             FormatString = m.Groups["text"].Value;
             Definition = FStringDefinition.Parse(null, Name, FormatString, !m.Groups["buck"].Success);
@@ -314,7 +325,10 @@ namespace FStringCompiler {
                     // TODO: Detect fstrings and try to do a fast-path, no-allocation append
                     // We need a way to store the fstring without boxing first though...
                     // if (Group.Arguments.Any(a => (a.Name == key) && (a.Type == "IFString"))
-                    output.WriteLine($"\t\t\t\t\toutput.Append({key});");
+                    if (IsTypeKnownToBeFString(key))
+                        output.WriteLine($"\t\t\t\t\toutput.AppendFString({key});");
+                    else
+                        output.WriteLine($"\t\t\t\t\toutput.Append({key});");
                     output.WriteLine($"\t\t\t\t\treturn;");
                 }
                 output.WriteLine("\t\t\t\tdefault:");
@@ -335,6 +349,17 @@ namespace FStringCompiler {
                 output.WriteLine("\t}");
             }
             output.WriteLine();
+        }
+
+        bool IsTypeKnownToBeFString (string key) {
+            foreach (var arg in Group.Arguments) {
+                if (arg.Name == key) {
+                    if (Program.KnownFStringKeys.Contains(arg.Type))
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         private static IEnumerable<string> GetIds (FStringDefinition definition) =>

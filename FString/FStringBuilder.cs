@@ -181,6 +181,7 @@ namespace Squared.FString {
 
         public void AppendFString<T> (T value)
             where T : struct, IFString {
+            value.AppendTo(ref this);
         }
         
         public void Append<T> (T value) {
