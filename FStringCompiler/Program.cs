@@ -324,11 +324,6 @@ namespace FStringCompiler {
 
                 // Generate the append overloads that make things usable dynamically
                 output.WriteLine("\t\tpublic void AppendTo (ref FStringBuilder output) => output.GetDefinition(StringTableKey).AppendTo(ref this, ref output);");
-                output.WriteLine("\t\tpublic void AppendTo (StringBuilder output) => AppendTo(output, null);");
-                output.WriteLine("\t\tpublic void AppendTo (StringBuilder output, FStringTable table) {");
-                output.WriteLine("\t\t\tvar fsb = new FStringBuilder(output, table);");
-                output.WriteLine("\t\t\tAppendTo(ref fsb);");
-                output.WriteLine("\t\t}");
 
                 // Generate ToString for simple uses
                 output.WriteLine("\t\tpublic override string ToString () {");

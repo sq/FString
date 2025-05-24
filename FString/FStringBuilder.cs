@@ -88,7 +88,9 @@ namespace Squared.FString {
             if (fstring == null)
                 return;
 
-            fstring.AppendTo(O, DefaultStringTable ?? FStringTable.Default);
+            // FIXME
+            fstring.AppendTo(ref this);
+            // fstring.AppendTo(O, DefaultStringTable ?? FStringTable.Default);
         }
 
         public void Append (uint? value) {
