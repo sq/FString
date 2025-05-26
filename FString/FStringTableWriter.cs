@@ -10,7 +10,8 @@ namespace Squared.FString {
     public class FStringTableWriter : IDisposable {
         public readonly XmlWriter Writer;
         private (string, DateTime) CurrentFile;
-        private List<(string, string, string, bool, string)> DeferredItems = new ();
+        private HashSet<(string, string, string, bool, string)> DeferredItems = new ();
+        private HashSet<string> KeysWritten = new ();
 
         public FStringTableWriter (Stream stream, string locale, bool ownsStream = true) {
             var started = DateTime.UtcNow;
@@ -40,6 +41,8 @@ namespace Squared.FString {
             if (CurrentFile.Item1 != null)
                 EndFile();
 
+            KeysWritten.Clear();
+            DeferredItems.Clear();
             CurrentFile = newFile;
             Writer.WriteStartElement("File");
 
@@ -48,12 +51,12 @@ namespace Squared.FString {
         }
 
         public void Flush () {
-            DeferredItems.Sort((l, r) => l.Item1.CompareTo(r.Item1));
-            foreach (var di in DeferredItems) {
+            foreach (var di in DeferredItems.OrderBy(tup => tup.Item1)) {
                 if (di.Item5 != null)
                     WriteComment(di.Item5);
                 WriteEntry(di.Item1, di.Item2, di.Item3, di.Item4);
             }
+            DeferredItems.Clear();
         }
 
         public void EndFile () {
@@ -72,6 +75,8 @@ namespace Squared.FString {
         }
 
         public void WriteEntry (string key, string text, string hash, bool isLiteral) {
+            if (KeysWritten.Contains(key))
+                throw new Exception($"Key '{key}' already written to string table with text '{text}'");
             Writer.WriteStartElement(isLiteral ? "Literal" : "String");
             Writer.WriteAttributeString("Name", key);
             Writer.WriteAttributeString("Hash", hash);
@@ -80,7 +85,10 @@ namespace Squared.FString {
         }
 
         public void DeferWriteEntry (string key, string text, string hash, bool isLiteral, string precedingComment = null) {
-            DeferredItems.Add((key, text, hash, isLiteral, precedingComment));
+            var tup = (key, text, hash, isLiteral, precedingComment);
+            if (DeferredItems.Contains(tup))
+                throw new Exception($"Key '{key}' already deferred for string table write with text '{text}'");
+            DeferredItems.Add(tup);
         }
     }
 }
