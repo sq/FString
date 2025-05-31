@@ -310,8 +310,8 @@ namespace FStringCompiler {
                 output.WriteLine();
 
                 // Generate the emitter that looks up a value by string key. This makes everything work
-                output.WriteLine("\t\tpublic void EmitValue (ref FStringBuilder output, string id) {");
-                output.WriteLine("\t\t\tswitch(id) {");
+                output.WriteLine("\t\tpublic void EmitValue (ref FStringBuilder __output__, string __id__) {");
+                output.WriteLine("\t\t\tswitch(__id__) {");
                 IEnumerable<string> keys;
                 if (Switch != null) {
                     keys = new string[0];
@@ -326,13 +326,13 @@ namespace FStringCompiler {
                     // We need a way to store the fstring without boxing first though...
                     // if (Group.Arguments.Any(a => (a.Name == key) && (a.Type == "IFString"))
                     if (IsTypeKnownToBeFString(key))
-                        output.WriteLine($"\t\t\t\t\t({key}).AppendTo(ref output);");
+                        output.WriteLine($"\t\t\t\t\t({key}).AppendTo(ref __output__);");
                     else
-                        output.WriteLine($"\t\t\t\t\toutput.Append({key});");
+                        output.WriteLine($"\t\t\t\t\t__output__.Append({key});");
                     output.WriteLine($"\t\t\t\t\treturn;");
                 }
                 output.WriteLine("\t\t\t\tdefault:");
-                output.WriteLine("\t\t\t\t\tthrow new ArgumentOutOfRangeException(nameof(id));");
+                output.WriteLine("\t\t\t\t\tthrow new ArgumentOutOfRangeException(nameof(__id__));");
                 output.WriteLine("\t\t\t}");
                 output.WriteLine("\t\t}");
 
