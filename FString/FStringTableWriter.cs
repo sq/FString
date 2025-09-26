@@ -21,6 +21,8 @@ namespace Squared.FString {
                 NewLineHandling = NewLineHandling.Entitize,
                 CloseOutput = ownsStream,
                 WriteEndDocumentOnClose = true,
+                IndentChars = "\t",
+                NewLineOnAttributes = true,
             };
             Writer = XmlWriter.Create(stream, xws);
             Writer.WriteStartDocument();
@@ -87,7 +89,12 @@ namespace Squared.FString {
             if (extraAttributes != null)
                 foreach (var kvp in extraAttributes)
                     Writer.WriteAttributeString(kvp.Key, kvp.Value);
-            Writer.WriteString(text);
+
+            if (text.Contains('<') || text.Contains('&') || text.Contains('\n'))
+                Writer.WriteCData(text);
+            else
+                Writer.WriteString(text);
+
             Writer.WriteEndElement();
         }
 
