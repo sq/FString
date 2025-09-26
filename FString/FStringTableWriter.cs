@@ -9,7 +9,7 @@ using System.Xml;
 namespace Squared.FString {
     public class FStringTableWriter : IDisposable {
         public readonly XmlWriter Writer;
-        private (string, DateTime) CurrentFile;
+        private (string sourcePath, DateTime sourceModifiedUtc, string sourceCommitHash) CurrentFile;
         private HashSet<(string key, string text, string hash, bool isLiteral, string precedingComment, Dictionary<string, string> attributes)> DeferredItems = new ();
         private HashSet<string> KeysWritten = new ();
 
@@ -34,20 +34,23 @@ namespace Squared.FString {
         {
         }
 
-        public void StartFile (string sourcePath, DateTime sourceModifiedUtc) {
-            var newFile = (sourcePath, sourceModifiedUtc);
+        public void StartFile (string sourcePath, DateTime sourceModifiedUtc, string sourceCommitHash) {
+            var newFile = (sourcePath, sourceModifiedUtc, sourceCommitHash);
             if (CurrentFile == newFile)
                 return;
-            if (CurrentFile.Item1 != null)
+            if (CurrentFile.sourcePath != null)
                 EndFile();
 
             KeysWritten.Clear();
             DeferredItems.Clear();
             CurrentFile = newFile;
+            Writer.WriteComment($"Start of file {Path.GetFileName(sourcePath)}");
             Writer.WriteStartElement("File");
 
             Writer.WriteAttributeString("SourcePath", sourcePath);
             Writer.WriteAttributeString("SourceModifiedUtc", sourceModifiedUtc.ToString("o"));
+            if (!string.IsNullOrWhiteSpace(sourceCommitHash))
+                Writer.WriteAttributeString("SourceCommitHash", sourceCommitHash);
         }
 
         public void Flush () {
@@ -61,9 +64,10 @@ namespace Squared.FString {
 
         public void EndFile () {
             Flush();
-            if (CurrentFile.Item1 == null)
+            if (CurrentFile.sourcePath == null)
                 throw new InvalidOperationException();
             Writer.WriteEndElement();
+            Writer.WriteComment($"End of file {Path.GetFileName(CurrentFile.sourcePath)}");
             CurrentFile = default;
         }
 
