@@ -10,7 +10,7 @@ namespace Squared.FString {
     public class FStringTableWriter : IDisposable {
         public readonly XmlWriter Writer;
         private (string, DateTime) CurrentFile;
-        private HashSet<(string, string, string, bool, string)> DeferredItems = new ();
+        private HashSet<(string key, string text, string hash, bool isLiteral, string precedingComment, Dictionary<string, string> attributes)> DeferredItems = new ();
         private HashSet<string> KeysWritten = new ();
 
         public FStringTableWriter (Stream stream, string locale, bool ownsStream = true) {
@@ -52,9 +52,9 @@ namespace Squared.FString {
 
         public void Flush () {
             foreach (var di in DeferredItems.OrderBy(tup => tup.Item1)) {
-                if (di.Item5 != null)
-                    WriteComment(di.Item5);
-                WriteEntry(di.Item1, di.Item2, di.Item3, di.Item4);
+                if (di.precedingComment != null)
+                    WriteComment(di.precedingComment);
+                WriteEntry(di.key, di.text, di.hash, di.isLiteral, di.attributes);
             }
             DeferredItems.Clear();
         }
@@ -74,20 +74,26 @@ namespace Squared.FString {
             Writer.Dispose();
         }
 
-        public void WriteEntry (string key, string text, string hash, bool isLiteral) {
+        public void WriteEntry (string key, string text, string hash, bool isLiteral, Dictionary<string, string> extraAttributes = null) {
             if (KeysWritten.Contains(key))
                 throw new Exception($"Key '{key}' already written to string table with text '{text}'");
             Writer.WriteStartElement(isLiteral ? "Literal" : "String");
             Writer.WriteAttributeString("Name", key);
             Writer.WriteAttributeString("Hash", hash);
+            if (extraAttributes != null)
+                foreach (var kvp in extraAttributes)
+                    Writer.WriteAttributeString(kvp.Key, kvp.Value);
             Writer.WriteString(text);
             Writer.WriteEndElement();
         }
 
-        public void DeferWriteEntry (string key, string text, string hash, bool isLiteral, string precedingComment = null) {
-            var tup = (key, text, hash, isLiteral, precedingComment);
-            if (DeferredItems.Contains(tup))
-                throw new Exception($"Key '{key}' already deferred for string table write with text '{text}'");
+        public void DeferWriteEntry (string key, string text, string hash, bool isLiteral, string precedingComment = null, Dictionary<string, string> extraAttributes = null) {
+            var tup = (key, text, hash, isLiteral, precedingComment, extraAttributes);
+            foreach (var di in DeferredItems) {
+                if (di.key == key)
+                    throw new Exception($"Key '{key}' already deferred for string table write with text '{text}'");
+            }
+
             DeferredItems.Add(tup);
         }
     }
