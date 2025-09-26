@@ -86,6 +86,12 @@ namespace Squared.FString {
             Writer.WriteStartElement(isLiteral ? "Literal" : "String");
             Writer.WriteAttributeString("Name", key);
             Writer.WriteAttributeString("Hash", hash);
+
+            if (text.EndsWith("\n")) {
+                Writer.WriteAttributeString("TrailingNewline", "true");
+                text = text.Substring(0, text.Length - 1);
+            }
+
             if (extraAttributes != null)
                 foreach (var kvp in extraAttributes)
                     Writer.WriteAttributeString(kvp.Key, kvp.Value);

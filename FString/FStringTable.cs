@@ -69,7 +69,10 @@ namespace Squared.FString {
                         if ((xr.Name != "String") && (xr.Name != "Literal"))
                             throw new Exception($"Unexpected element '{xr.Name}', expected String or Literal");
                         var name = xr.GetAttribute("Name");
+                        var newline = xr.GetAttribute("TrailingNewline")?.Trim() == "true";
                         var formatString = xr.ReadElementContentAsString();
+                        if (newline)
+                            formatString += '\n';
                         if (isLiteral)
                             AddRaw(name, formatString, allowOverwrite);
                         else
