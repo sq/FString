@@ -28,6 +28,8 @@ namespace Squared.FString {
             = new Dictionary<string, FStringDefinition>(StringComparer.Ordinal);
 
         public string Path { get; internal set; }
+        public string Language { get; internal set; }
+        public bool IsMissing { get; internal set; }
 
         public FStringTable (string name) {
             Name = name;

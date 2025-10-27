@@ -32,12 +32,17 @@ namespace Squared.FString {
         private void Reload ((string folder, string name) key, FStringTable table) {
             // HACK
             if (Language == "missing") {
+                table.IsMissing = true;
+                table.Language = Language;
                 table.Clear();
                 return;
             }
 
             var path = BuildPath(key);
             if (!File.Exists(path)) {
+                table.IsMissing = true;
+                table.Language = Language;
+                table.Clear();
                 System.Diagnostics.Debug.WriteLine($"String table missing during reload: '{path}'");
                 return;
             }
@@ -46,6 +51,8 @@ namespace Squared.FString {
                 table.Path = path;
                 table.Clear();
                 table.PopulateFromXmlStream(stream, true);
+                table.IsMissing = false;
+                table.Language = Language;
                 System.Diagnostics.Debug.WriteLine($"Reloaded string table '{path}'");
             }
         }
@@ -67,25 +74,32 @@ namespace Squared.FString {
             var key = (folder, name);
             lock (Cache)
                 if (Cache.TryGetValue(key, out result)) {
-                    if (forceReload)
+                    if (forceReload || (result.Language != Language))
                         Reload(key, result);
                     return result;
                 }
 
             var path = BuildPath(key);
-            if (!File.Exists(path) && optional)
-                return null;
-
-            using (var stream = File.OpenRead(path)) {
-                result = new FStringTable(name, stream) {
+            if (!File.Exists(path) && optional) {
+                result = new FStringTable(name) {
                     Path = path,
+                    IsMissing = true,
+                    Language = Language
                 };
                 result.MissingString += ForwardOnMissingString;
+            } else {
+                using (var stream = File.OpenRead(path)) {
+                    result = new FStringTable(name, stream) {
+                        Path = path,
+                        Language = Language,
+                    };
+                    result.MissingString += ForwardOnMissingString;
+                }
             }
 
             lock (Cache) {
                 if (Cache.TryGetValue(key, out var lostARace)) {
-                    if (forceReload)
+                    if (forceReload || (result.Language != Language))
                         Reload(key, lostARace);
                     return lostARace;
                 }
